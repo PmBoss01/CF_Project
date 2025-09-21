@@ -1,0 +1,1 @@
+# AKS Terraform generation is a placeholder.
