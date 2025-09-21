@@ -1,0 +1,1 @@
+# AKS Bicep generation is a placeholder.
