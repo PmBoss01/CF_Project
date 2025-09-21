@@ -2,7 +2,7 @@
 param location string = 'eastus'
 
 @description('The name of the AKS cluster.')
-param clusterName string = 'myBesTecH-web-app'
+param clusterName string = 'myBesTecH-backend-dpoly'
 
 @description('The number of nodes in the AKS cluster.')
 param nodeCount int = 1
