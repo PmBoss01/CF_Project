@@ -8,10 +8,10 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "myBesTecH-web"
+  name                = "web-deployment"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "myBesTecH-web"
+  dns_prefix          = "web-deployment"
 
   default_node_pool {
     name       = "default"
