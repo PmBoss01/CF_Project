@@ -13,9 +13,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlanId
     siteConfig: {
-      appSettings: [
-      { name: 'db_password', value: '1234' }
-    ]
+      appSettings: []
     }
   }
 }
