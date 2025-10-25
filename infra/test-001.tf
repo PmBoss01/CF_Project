@@ -2,18 +2,33 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_app_service_plan" "plan" {
-  name                = "asp-test-001"
-  location            = "eastus"
-  resource_group_name = "DOP_ResourceGroup"
-  kind                = "Linux"
-  reserved            = true # Required for Linux plans
-  sku {
-    tier = "Basic"
-    size = "B1"
+resource "azurerm_resource_group" "rg" {
+  name     = "DOP_ResourceGroup"
+  location = "eastus"
+}
+
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = "test-001"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  dns_prefix          = "test-001"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_DS2_v2"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = {
+    environment = "Production"
   }
 }
 
-output "app_service_plan_id" {
-  value = azurerm_app_service_plan.plan.id
+output "kube_config" {
+  value     = azurerm_kubernetes_cluster.aks.kube_config_raw
+  sensitive = true
 }
