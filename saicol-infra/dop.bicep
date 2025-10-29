@@ -1,32 +1,25 @@
 @description('The Azure region for the deployment.')
 param location string = 'eastus'
 
-@description('The name of the AKS cluster.')
-param clusterName string = 'saicol-frontend-01'
+@description('The name of the application.')
+param appName string = 'saicol-frontend'
 
-@description('The number of nodes in the AKS cluster.')
-param nodeCount int = 1
+@description('The ID of the App Service Plan to use.')
+param appServicePlanId string
 
-@description('The VM size for the AKS nodes.')
-param vmSize string = 'Standard_DS2_v2'
+@description('The container image to deploy.')
+param containerImage string = 'placeholder.azurecr.io/image:latest'
 
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
-  name: clusterName
+resource appService 'Microsoft.Web/sites@2022-03-01' = {
+  name: appName
   location: location
   properties: {
-    dnsPrefix: clusterName
-    agentPoolProfiles: [
-      {
-        name: 'agentpool'
-        count: nodeCount
-        vmSize: vmSize
-        mode: 'System'
-      }
-    ]
-    identity: {
-      type: 'SystemAssigned'
+    serverFarmId: appServicePlanId
+    siteConfig: {
+      linuxFxVersion: 'DOCKER|' + containerImage
+      appSettings: []
     }
   }
 }
 
-output kubeConfig object = listKeys(aksCluster.id, '2023-03-01').keys[0].value
+output appServiceHostName string = appService.properties.defaultHostName
