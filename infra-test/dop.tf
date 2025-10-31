@@ -2,34 +2,33 @@ provider "azurerm" {
   features {}
 }
 
-data "azurerm_resource_group" "rg" {
-  name = "DOP_ResourceGroup"
+resource "azurerm_resource_group" "rg" {
+  name     = "DOP_ResourceGroup"
+  location = "eastus"
 }
 
-variable "app_service_plan_id" {
-  description = "The ID of the App Service Plan to use."
-  type        = string
-}
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = "frontend-service "
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  dns_prefix          = "frontend-service "
 
-variable "container_image" {
-  description = "The container image to deploy."
-  type        = string
-  default     = "placeholder.azurecr.io/image:latest"
-}
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_DS2_v2"
+  }
 
-resource "azurerm_app_service" "app" {
-  name                = "test-app"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
-  app_service_plan_id = var.app_service_plan_id
+  identity {
+    type = "SystemAssigned"
+  }
 
-  app_settings = {}
-
-  site_config {
-    linux_fx_version = "DOCKER|${var.container_image}"
+  tags = {
+    environment = "Production"
   }
 }
 
-output "app_service_hostname" {
-  value = azurerm_app_service.app.default_site_hostname
+output "kube_config" {
+  value     = azurerm_kubernetes_cluster.aks.kube_config_raw
+  sensitive = true
 }
