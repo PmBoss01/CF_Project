@@ -8,10 +8,10 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "web-frontend"
+  name                = "QR Code-web"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "web-frontend"
+  dns_prefix          = "QR Code-web"
 
   default_node_pool {
     name       = "default"
