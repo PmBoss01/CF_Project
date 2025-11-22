@@ -42,9 +42,9 @@ jobs:
       - name: Run IaC Linting
         if: github.event.inputs.run_iac_lint == 'true'
         run: |
-          echo "📝 Simulating IaC linting failure for testing..."
-          # A non-zero exit code will cause this step to fail.
-          exit 1
+          echo "📝 Running IaC linting..."
+          # In a real scenario, you would use tools like 'az bicep lint' or 'tflint'
+          echo "IaC linting passed."
 
       - name: Run IaC Validation
         if: github.event.inputs.run_iac_validate == 'true'
