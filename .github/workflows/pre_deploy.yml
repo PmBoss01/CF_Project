@@ -34,7 +34,6 @@ jobs:
   iac-checks:
     runs-on: ubuntu-latest
     name: IaC Validation
-    continue-on-error: true
     if: github.event.inputs.run_iac_lint == 'true' || github.event.inputs.run_iac_validate == 'true'
     steps:
       - name: Checkout Code
@@ -57,7 +56,6 @@ jobs:
   app-checks:
     runs-on: ubuntu-latest
     name: Application Code Validation
-    continue-on-error: true
     if: github.event.inputs.run_unit_test == 'true' || github.event.inputs.run_security_scan == 'true' || github.event.inputs.run_integration_test == 'true'
     steps:
       - name: Checkout Code
