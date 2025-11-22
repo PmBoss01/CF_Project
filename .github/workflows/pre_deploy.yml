@@ -1,0 +1,95 @@
+
+name: Pre-Deployment Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_unit_test:
+        description: 'Run Unit Tests'
+        required: false
+        type: boolean
+        default: false
+      run_security_scan:
+        description: 'Run Security Scan'
+        required: false
+        type: boolean
+        default: false
+      run_integration_test:
+        description: 'Run Integration Tests'
+        required: false
+        type: boolean
+        default: false
+      run_iac_lint:
+        description: 'Run IaC Linting'
+        required: false
+        type: boolean
+        default: false
+      run_iac_validate:
+        description: 'Run IaC Validation'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  iac-checks:
+    runs-on: ubuntu-latest
+    name: IaC Validation
+    continue-on-error: true
+    if: github.event.inputs.run_iac_lint == 'true' || github.event.inputs.run_iac_validate == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run IaC Linting
+        if: github.event.inputs.run_iac_lint == 'true'
+        run: |
+          echo "📝 Simulating IaC linting failure for testing..."
+          # A non-zero exit code will cause this step to fail.
+          exit 1
+
+      - name: Run IaC Validation
+        if: github.event.inputs.run_iac_validate == 'true'
+        run: |
+          echo "☁️ Running IaC validation..."
+          # In a real scenario, you would use 'az deployment group validate' or 'terraform validate'
+          echo "IaC validation passed."
+
+  app-checks:
+    runs-on: ubuntu-latest
+    name: Application Code Validation
+    continue-on-error: true
+    if: github.event.inputs.run_unit_test == 'true' || github.event.inputs.run_security_scan == 'true' || github.event.inputs.run_integration_test == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Unit Tests
+        if: github.event.inputs.run_unit_test == 'true'
+        run: |
+          echo "🧪 Running unit tests..."
+
+      - name: Run Security Scan
+        if: github.event.inputs.run_security_scan == 'true'
+        run: |
+          echo "🔒 Running security scan..."
+
+      - name: Run Integration Tests
+        if: github.event.inputs.run_integration_test == 'true'
+        run: |
+          echo "🔗 Running integration tests..."
+
+  pre-deployment-summary:
+    runs-on: ubuntu-latest
+    name: Pre-Deployment Summary
+    needs: [iac-checks, app-checks]
+    if: always() # This job must always run to determine the final outcome
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "IaC Checks status: ${{ needs.iac-checks.result }}"
+          echo "App Checks status: ${{ needs.app-checks.result }}"
+          if [[ "${{ needs.iac-checks.result }}" == "failure" || "${{ needs.iac-checks.result }}" == "cancelled" || "${{ needs.app-checks.result }}" == "failure" || "${{ needs.app-checks.result }}" == "cancelled" ]]; then
+            echo "One or more pre-deployment checks failed."
+            exit 1
+          fi
+          echo "All pre-deployment checks passed successfully."
