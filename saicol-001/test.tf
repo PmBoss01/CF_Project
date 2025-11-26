@@ -3,7 +3,7 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "dop-rg"
+  name     = "dopstorage001"
   location = "eastus"
 }
 
