@@ -2,33 +2,18 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = "dop-rg"
-  location = "eastus"
-}
-
-resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "frontend-web"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "frontend-web"
-
-  default_node_pool {
-    name       = "default"
-    node_count = 1
-    vm_size    = "Standard_DS2_v2"
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  tags = {
-    environment = "Production"
+resource "azurerm_app_service_plan" "plan" {
+  name                = "asp-frontend-001"
+  location            = "eastus"
+  resource_group_name = "dop-rg"
+  kind                = "Linux"
+  reserved            = true # Required for Linux plans
+  sku {
+    tier = "Basic"
+    size = "B1"
   }
 }
 
-output "kube_config" {
-  value     = azurerm_kubernetes_cluster.aks.kube_config_raw
-  sensitive = true
+output "app_service_plan_id" {
+  value = azurerm_app_service_plan.plan.id
 }
