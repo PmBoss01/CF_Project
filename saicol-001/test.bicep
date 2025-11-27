@@ -2,7 +2,7 @@
 param location string = 'eastus'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-frontend-app'
+param appServicePlanName string = 'asp-SAICOL-FRONTEND'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'F1'
