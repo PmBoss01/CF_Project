@@ -1,5 +1,5 @@
 @description('The Azure region for the deployment.')
-param location string = 'eastus'
+param location string = 'canadacentral'
 
 @description('The name of the App Service Plan.')
 param appServicePlanName string = 'asp-SAICOL-FRONTEND'
