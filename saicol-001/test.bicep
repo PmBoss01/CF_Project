@@ -2,14 +2,14 @@
 param location string = 'eastus'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-frontend-web'
+param appServicePlanName string = 'asp-frontend-service'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: appServicePlanName
   location: location
   sku: {
-    name: 'B1'
-    tier: 'Basic'
+    name: 'S1'
+    tier: 'Standard'
   }
 }
 
