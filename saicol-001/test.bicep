@@ -1,8 +1,8 @@
 @description('The Azure region for the deployment.')
-param location string = 'eastus'
+param location string = 'canadacentral'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-WEB-FRONTEND'
+param appServicePlanName string = 'asp-frontend-web'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'F1'
