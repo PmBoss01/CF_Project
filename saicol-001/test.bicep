@@ -1,35 +1,26 @@
 @description('The Azure region for the deployment.')
 param location string = 'canadacentral'
 
-@description('The name of the AKS cluster.')
-param clusterName string = 'frontend-web'
+@description('The name of the App Service Plan.')
+param appServicePlanName string = 'asp-frontend-app'
 
-@description('The number of nodes in the AKS cluster.')
-param nodeCount int = 1
+@description('The SKU name for the App Service Plan.')
+param skuName string = 'F1'
 
-@description('The VM size for the AKS nodes.')
-param vmSize string = 'Standard_B2s'
+@description('The SKU tier for the App Service Plan.')
+param skuTier string = 'Free'
 
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
-  name: clusterName
+@description('The kind of the App Service Plan (e.g., app, linux).')
+param kind string = 'app'
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+  name: appServicePlanName
   location: location
-  tags: {
-    environment: 'Production'
+  sku: {
+    name: skuName
+    tier: skuTier
   }
-  properties: {
-    dnsPrefix: clusterName
-    agentPoolProfiles: [
-      {
-        name: 'agentpool'
-        count: nodeCount
-        vmSize: vmSize
-        mode: 'System'
-      }
-    ]
-    identity: {
-      type: 'SystemAssigned'
-    }
-  }
+  kind: kind
 }
 
-output kubeConfig object = listKeys(aksCluster.id, '2023-03-01').keys[0].value
+output appServicePlanId string = appServicePlan.id
