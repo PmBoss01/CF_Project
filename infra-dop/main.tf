@@ -9,6 +9,7 @@ terraform {
 
 provider "azurerm" {
   features {}
+  use_cli = false
 }
 
 resource "azurerm_app_service_plan" "plan" {
