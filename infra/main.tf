@@ -2,18 +2,17 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 2.0"
     }
   }
 }
 
 provider "azurerm" {
   features {}
-  use_cli = false
 }
 
 resource "azurerm_app_service_plan" "plan" {
-  name                = "asp-frontend-terraform"
+  name                = "asp-terraform-app"
   location            = "centralus"
   resource_group_name = "dopRG"
   kind                = "app"
