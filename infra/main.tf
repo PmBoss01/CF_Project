@@ -12,7 +12,7 @@ provider "azurerm" {
 }
 
 resource "azurerm_app_service_plan" "plan" {
-  name                = "asp-terraform-app"
+  name                = "asp-last-app"
   location            = "centralus"
   resource_group_name = "dopRG"
   kind                = "app"
