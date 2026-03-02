@@ -2,16 +2,16 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'frontend-web'
+param appName string = 'app-infra-001'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-frontend-web'
+param appServicePlanName string = 'asp-app-infra-001'
 
 @description('The SKU name for the App Service Plan.')
-param skuName string = 'B1'
+param skuName string = 'S1'
 
 @description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Basic'
+param skuTier string = 'Standard'
 
 @description('The container image to deploy.')
 param containerImage string = 'placeholder.azurecr.io/image:latest'
