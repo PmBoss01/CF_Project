@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'infra-app-009'
+param appName string = 'app-infra-009'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-infra-app-009'
+param appServicePlanName string = 'asp-app-infra-009'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
