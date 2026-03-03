@@ -2,16 +2,16 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'app-infra-009'
+param appName string = 'infra-001'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-app-infra-009'
+param appServicePlanName string = 'asp-infra-001'
 
 @description('The SKU name for the App Service Plan.')
-param skuName string = 'S1'
+param skuName string = 'F1'
 
 @description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Standard'
+param skuTier string = 'Free'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: appServicePlanName
