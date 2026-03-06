@@ -1,8 +1,8 @@
 @description('The Azure region for the deployment.')
-param location string = 'eastus'
+param location string = 'centralus'
 
 @description('The name of the AKS cluster.')
-param clusterName string = 'aks-app'
+param clusterName string = 'canary-aks'
 
 @description('The number of nodes in the AKS cluster.')
 param nodeCount int = 2
