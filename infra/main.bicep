@@ -2,7 +2,7 @@
 param location string = 'centralus'
 
 @description('The name of the AKS cluster.')
-param clusterName string = 'canary-aks'
+param clusterName string = 'test-canary'
 
 @description('The number of nodes in the AKS cluster.')
 param nodeCount int = 2
