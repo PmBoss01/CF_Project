@@ -18,14 +18,14 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "aks-infra"
+  name                = "canary-aks"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "aks-infra"
+  dns_prefix          = "canary-aks"
 
   default_node_pool {
     name       = "agentpool"
-    node_count = 3
+    node_count = 2
     vm_size    = "Standard_DS2_v2"
     upgrade_settings {
       max_surge = "0"
