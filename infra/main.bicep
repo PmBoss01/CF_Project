@@ -1,53 +1,42 @@
 @description('The Azure region for the deployment.')
 param location string = 'centralus'
 
-@description('The name of the application.')
-param appName string = 'canary-app'
+@description('The name of the AKS cluster.')
+param clusterName string = 'aks-app'
 
-@description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-canary-app'
+@description('The number of nodes in the AKS cluster.')
+param nodeCount int = 2
 
-@description('The SKU name for the App Service Plan.')
-param skuName string = 'F1'
+@description('The VM size for the AKS nodes.')
+param vmSize string = 'Standard_DS2_v2'
 
-@description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Free'
-
-resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
-  name: appServicePlanName
+resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
+  name: clusterName
   location: location
-  sku: {
-    name: skuName
-    tier: skuTier
+  identity: {
+    type: 'SystemAssigned'
   }
-  kind: 'linux'
-  properties: {
-    reserved: true
+  tags: {
+    environment: 'dev'
   }
-}
-
-resource appService 'Microsoft.Web/sites@2022-03-01' = {
-  name: appName
-  location: location
-  kind: 'app,linux'
   properties: {
-    serverFarmId: appServicePlan.id
-    siteConfig: {
-      linuxFxVersion: 'PHP|8.2'
-      appSettings: [
-      { name: 'APP_NAME', value: 'RocketDash' }
-      { name: 'APP_ENV', value: 'production' }
-      { name: 'DB_HOST', value: 'db.internal.rocketdash.io' }
-      { name: 'DB_NAME', value: 'rocketdash_prod' }
-      { name: 'DB_USER', value: 'rd_admin' }
-      { name: 'DB_PASS', value: 'xT7#mQ2!vZ9$kL4n' }
-      { name: 'API_KEY', value: '********' }
-      { name: 'SECRET_TOKEN', value: '********' }
-      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+    dnsPrefix: clusterName
+    agentPoolProfiles: [
+      {
+        name: 'agentpool'
+        count: nodeCount
+        vmSize: vmSize
+        mode: 'System'
+        osType: 'Linux'
+        type: 'VirtualMachineScaleSets'
+      }
     ]
+    servicePrincipalProfile: {
+      clientId: 'msi'
     }
   }
 }
 
-output appServicePlanId string = appServicePlan.id
-output appServiceHostName string = appService.properties.defaultHostName
+output clusterName string = aksCluster.name
+output clusterFqdn string = aksCluster.properties.fqdn
+output clusterResourceId string = aksCluster.id
