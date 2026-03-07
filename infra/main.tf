@@ -25,7 +25,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   default_node_pool {
     name       = "agentpool"
-    node_count = 2
+    node_count = 3
     vm_size    = "Standard_DS2_v2"
     upgrade_settings {
       max_surge = "0"
