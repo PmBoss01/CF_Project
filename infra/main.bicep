@@ -2,16 +2,16 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'aks-app-v1'
+param appName string = 'canary-app'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-aks-app-v1'
+param appServicePlanName string = 'asp-canary-app'
 
 @description('The SKU name for the App Service Plan.')
-param skuName string = 'S1'
+param skuName string = 'F1'
 
 @description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Standard'
+param skuTier string = 'Free'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: appServicePlanName
@@ -35,6 +35,14 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
     siteConfig: {
       linuxFxVersion: 'PHP|8.2'
       appSettings: [
+      { name: 'APP_NAME', value: 'RocketDash' }
+      { name: 'APP_ENV', value: 'production' }
+      { name: 'DB_HOST', value: 'db.internal.rocketdash.io' }
+      { name: 'DB_NAME', value: 'rocketdash_prod' }
+      { name: 'DB_USER', value: 'rd_admin' }
+      { name: 'DB_PASS', value: 'xT7#mQ2!vZ9$kL4n' }
+      { name: 'API_KEY', value: '********' }
+      { name: 'SECRET_TOKEN', value: '********' }
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
     ]
     }
