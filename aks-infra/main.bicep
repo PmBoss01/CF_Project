@@ -2,7 +2,7 @@
 param location string = 'centralus'
 
 @description('The name of the AKS cluster.')
-param clusterName string = 'aks-app-test'
+param clusterName string = 'v2-aks-app'
 
 @description('The number of nodes in the AKS cluster.')
 param nodeCount int = 2
@@ -17,7 +17,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
     type: 'SystemAssigned'
   }
   tags: {
-    environment: 'dev'
+    environment: 'prod'
   }
   properties: {
     dnsPrefix: clusterName
