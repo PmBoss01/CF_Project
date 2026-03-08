@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'frontend-web'
+param appName string = 'acr-app'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-frontend-web'
+param appServicePlanName string = 'asp-acr-app'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -29,14 +29,12 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
 resource appService 'Microsoft.Web/sites@2022-03-01' = {
   name: appName
   location: location
-  kind: 'app,linux'
+  kind: 'app,linux,container'
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'PHP|8.2'
-      appSettings: [
-      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
-    ]
+      linuxFxVersion: 'DOCKER|doptestcontainer.azurecr.io/aboutpm:latest'
+      appSettings: []
     }
   }
 }
