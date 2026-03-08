@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'acr-bg'
+param appName string = 'acr-BG'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-acr-bg'
+param appServicePlanName string = 'asp-acr-BG'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|doptestcontainer.azurecr.io/envtestimage:V1'
+      linuxFxVersion: 'DOCKER|doptestcontainer.azurecr.io/dopimage:latest'
       appSettings: [
       { name: 'APP_NAME', value: 'RocketDash' }
       { name: 'APP_ENV', value: 'production' }
