@@ -1,46 +1,26 @@
 @description('The Azure region for the deployment.')
 param location string = 'centralus'
 
-@description('The name of the AKS cluster.')
-param clusterName string = 'app-v1'
+@description('The name of the App Service Plan.')
+param appServicePlanName string = 'asp-app-v1'
 
-@description('The number of nodes in the AKS cluster.')
-param nodeCount int = 2
+@description('The SKU name for the App Service Plan.')
+param skuName string = 'S1'
 
-@description('The VM size for the AKS nodes.')
-param vmSize string = 'Standard_DS2_v2'
+@description('The SKU tier for the App Service Plan.')
+param skuTier string = 'Standard'
 
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
-  name: clusterName
+@description('The kind of the App Service Plan (e.g., app, linux).')
+param kind string = 'app'
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+  name: appServicePlanName
   location: location
-  identity: {
-    type: 'SystemAssigned'
+  sku: {
+    name: skuName
+    tier: skuTier
   }
-  tags: {
-    environment: 'dev'
-  }
-  properties: {
-    dnsPrefix: clusterName
-    agentPoolProfiles: [
-      {
-        name: 'agentpool'
-        count: nodeCount
-        vmSize: vmSize
-        mode: 'System'
-        osType: 'Linux'
-        type: 'VirtualMachineScaleSets'
-        upgradeSettings: {
-          maxSurge: '0'
-          maxUnavailable: '1'
-        }
-      }
-    ]
-    servicePrincipalProfile: {
-      clientId: 'msi'
-    }
-  }
+  kind: kind
 }
 
-output clusterName string = aksCluster.name
-output clusterFqdn string = aksCluster.properties.fqdn
-output clusterResourceId string = aksCluster.id
+output appServicePlanId string = appServicePlan.id
