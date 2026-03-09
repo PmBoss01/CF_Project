@@ -123,25 +123,27 @@ jobs:
       - name: Auto-detect Application Runtime
         id: detect_runtime
         run: |
-          if [ -f "package.json" ]; then
+          # Search up to 3 levels deep so code committed to a subdirectory is still found.
+          # App code may be at root or in a subdirectory depending on the code source type.
+          if find . -maxdepth 3 -name "package.json" ! -path "*/node_modules/*" | grep -q .; then
             echo "runtime=nodejs" >> $GITHUB_OUTPUT
             echo "Detected runtime: Node.js"
-          elif [ -f "requirements.txt" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+          elif find . -maxdepth 3 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
             echo "runtime=python" >> $GITHUB_OUTPUT
             echo "Detected runtime: Python"
-          elif find . -maxdepth 2 -name "*.csproj" -o -name "*.sln" | grep -q .; then
+          elif find . -maxdepth 3 \( -name "*.csproj" -o -name "*.sln" \) | grep -q .; then
             echo "runtime=dotnet" >> $GITHUB_OUTPUT
             echo "Detected runtime: .NET"
-          elif [ -f "pom.xml" ]; then
+          elif find . -maxdepth 3 -name "pom.xml" | grep -q .; then
             echo "runtime=java-maven" >> $GITHUB_OUTPUT
             echo "Detected runtime: Java (Maven)"
-          elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+          elif find . -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
             echo "runtime=java-gradle" >> $GITHUB_OUTPUT
             echo "Detected runtime: Java (Gradle)"
-          elif [ -f "Gemfile" ]; then
+          elif find . -maxdepth 3 -name "Gemfile" | grep -q .; then
             echo "runtime=ruby" >> $GITHUB_OUTPUT
             echo "Detected runtime: Ruby"
-          elif [ -f "composer.json" ]; then
+          elif find . -maxdepth 3 -name "composer.json" | grep -q .; then
             echo "runtime=php" >> $GITHUB_OUTPUT
             echo "Detected runtime: PHP"
           else
