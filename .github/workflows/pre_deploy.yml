@@ -34,6 +34,11 @@ on:
         required: false
         type: string
         default: ''
+      app_runtime:
+        description: 'Application runtime hint (nodejs/python/dotnet/java-maven/java-gradle/ruby/php; leave empty for auto-detect)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   iac-checks:
@@ -123,27 +128,31 @@ jobs:
       - name: Auto-detect Application Runtime
         id: detect_runtime
         run: |
-          # Search up to 3 levels deep so code committed to a subdirectory is still found.
-          # App code may be at root or in a subdirectory depending on the code source type.
-          if find . -maxdepth 3 -name "package.json" ! -path "*/node_modules/*" | grep -q .; then
+          # Use the explicit app_runtime hint when provided — most reliable signal.
+          # Falls back to file-based detection (maxdepth 6 to cover deployment/app_code/... paths).
+          EXPLICIT="${{ github.event.inputs.app_runtime }}"
+          if [ -n "$EXPLICIT" ]; then
+            echo "runtime=${EXPLICIT}" >> $GITHUB_OUTPUT
+            echo "Using explicit runtime hint: ${EXPLICIT}"
+          elif find . -maxdepth 6 -name "package.json" ! -path "*/node_modules/*" | grep -q .; then
             echo "runtime=nodejs" >> $GITHUB_OUTPUT
             echo "Detected runtime: Node.js"
-          elif find . -maxdepth 3 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
+          elif find . -maxdepth 6 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
             echo "runtime=python" >> $GITHUB_OUTPUT
             echo "Detected runtime: Python"
-          elif find . -maxdepth 3 \( -name "*.csproj" -o -name "*.sln" \) | grep -q .; then
+          elif find . -maxdepth 6 \( -name "*.csproj" -o -name "*.sln" \) | grep -q .; then
             echo "runtime=dotnet" >> $GITHUB_OUTPUT
             echo "Detected runtime: .NET"
-          elif find . -maxdepth 3 -name "pom.xml" | grep -q .; then
+          elif find . -maxdepth 6 -name "pom.xml" | grep -q .; then
             echo "runtime=java-maven" >> $GITHUB_OUTPUT
             echo "Detected runtime: Java (Maven)"
-          elif find . -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
+          elif find . -maxdepth 6 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
             echo "runtime=java-gradle" >> $GITHUB_OUTPUT
             echo "Detected runtime: Java (Gradle)"
-          elif find . -maxdepth 3 -name "Gemfile" | grep -q .; then
+          elif find . -maxdepth 6 -name "Gemfile" | grep -q .; then
             echo "runtime=ruby" >> $GITHUB_OUTPUT
             echo "Detected runtime: Ruby"
-          elif find . -maxdepth 3 -name "composer.json" | grep -q .; then
+          elif find . -maxdepth 6 -name "composer.json" | grep -q .; then
             echo "runtime=php" >> $GITHUB_OUTPUT
             echo "Detected runtime: PHP"
           else
