@@ -243,7 +243,7 @@ jobs:
         if: steps.detect_runtime.outputs.runtime == 'php' && github.event.inputs.run_unit_test == 'true'
         run: |
           composer install --no-interaction --prefer-dist 2>/dev/null || true
-          vendor/bin/phpunit 2>/dev/null             || echo "::warning::No PHPUnit tests found or composer not configured."
+          vendor/bin/phpunit 2>/dev/null             || echo "No PHPUnit tests found or composer not configured. Add a phpunit.xml and tests/ folder to enable this check."
 
       # ── UNKNOWN RUNTIME ────────────────────────────────────────────────────
       - name: Unit Tests — Runtime Not Detected
@@ -277,8 +277,7 @@ jobs:
           elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
             python -m pytest tests/integration/ -q 2>/dev/null               || python -m pytest -m integration -q 2>/dev/null               || echo "::warning::No integration test folder or marker found."
           else
-            echo "::warning::No integration test entry point found."
-            echo "To enable integration tests, add one of:"
+            echo "No integration test entry point found. To enable integration tests, add one of:"
             echo "  - integration-tests.sh at project root"
             echo "  - 'integration' or 'test:integration' script in package.json"
             echo "  - tests/integration/ folder for Python projects"
