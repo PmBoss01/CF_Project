@@ -12,7 +12,7 @@ provider "azurerm" {
 }
 
 resource "azurerm_app_service_plan" "plan" {
-  name                = "asp-asap-app-v1"
+  name                = "asp-infra-myapp"
   location            = "centralus"
   resource_group_name = "dopRG"
   kind                = "app"
