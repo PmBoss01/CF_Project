@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'myapp-v01'
+param appName string = 'app-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-myapp-v01'
+param appServicePlanName string = 'asp-app-vv1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -35,7 +35,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
     siteConfig: {
       linuxFxVersion: 'PHP|8.2'
       appSettings: [
-      { name: 'LOGIN_USERNAME', value: 'rocketadmin' }
+      { name: 'LOGIN_USERNAME', value: 'mpemboateng2580@gmail.com' }
       { name: 'LOGIN_PASSWORD', value: '********' }
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
     ]
