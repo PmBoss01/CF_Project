@@ -1,8 +1,11 @@
 @description('The Azure region for the deployment.')
-param location string = 'centralus'
+param location string = 'uksouth'
+
+@description('The name of the application.')
+param appName string = 'my-app-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-myApp-VV3'
+param appServicePlanName string = 'asp-my-app-vv1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -23,4 +26,22 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
 }
 
+resource appService 'Microsoft.Web/sites@2022-03-01' = {
+  name: appName
+  location: location
+  kind: 'app,linux'
+  properties: {
+    serverFarmId: appServicePlan.id
+    siteConfig: {
+      linuxFxVersion: 'PHP|8.2'
+      appSettings: [
+      { name: 'LOGIN_USERNAME', value: 'rocketadmin' }
+      { name: 'LOGIN_PASSWORD', value: '********' }
+      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+    ]
+    }
+  }
+}
+
 output appServicePlanId string = appServicePlan.id
+output appServiceHostName string = appService.properties.defaultHostName
