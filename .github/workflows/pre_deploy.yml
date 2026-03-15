@@ -161,18 +161,36 @@ jobs:
           fi
 
       # ── NODE.JS ────────────────────────────────────────────────────────────
+      - name: Determine Node.js version
+        id: node_ver
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
+        run: |
+          RUNTIME="${{ steps.detect_runtime.outputs.runtime }}"
+          if [[ "$RUNTIME" =~ nodejs([0-9]+) ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          else
+            echo "version=20" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Node.js
-        if: steps.detect_runtime.outputs.runtime == 'nodejs'
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ steps.node_ver.outputs.version }}
 
       - name: Install Node.js dependencies
-        if: steps.detect_runtime.outputs.runtime == 'nodejs'
-        run: npm ci 2>/dev/null || npm install
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
+        run: |
+          # npm requires a file named exactly 'package.json'.
+          # If the user uploaded 'package.js' instead, rename it automatically.
+          if [ ! -f package.json ] && [ -f package.js ]; then
+            echo "::notice::Found 'package.js' but npm requires 'package.json'. Renaming automatically."
+            cp package.js package.json
+          fi
+          npm ci 2>/dev/null || npm install
 
       - name: Run Node.js Unit Tests
-        if: steps.detect_runtime.outputs.runtime == 'nodejs' && github.event.inputs.run_unit_test == 'true'
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs') && github.event.inputs.run_unit_test == 'true'
         run: |
           npm test -- --passWithNoTests 2>/dev/null             || npm test             || echo "::warning::No test script found or tests failed. Review package.json scripts."
 
