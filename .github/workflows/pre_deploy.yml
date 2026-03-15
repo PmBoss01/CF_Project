@@ -160,6 +160,20 @@ jobs:
             echo "Could not auto-detect runtime. Language-specific steps will be skipped."
           fi
 
+      - name: Find app code directory
+        id: find_app_dir
+        run: |
+          # Uploaded zips land under deployment/app_code/... not at the repo root.
+          # Locate the nearest dependency manifest to determine the app's working directory.
+          PKG=$(find . -maxdepth 8             \( -name "package.json" -o -name "package.js"                -o -name "requirements.txt" -o -name "pyproject.toml"                -o -name "composer.json" -o -name "Gemfile"                -o -name "pom.xml" -o -name "build.gradle"                -o -name "*.csproj" \)             ! -path "*/node_modules/*" ! -path "*/.git/*"             | head -1)
+          if [ -n "$PKG" ]; then
+            APP_DIR=$(dirname "$PKG")
+          else
+            APP_DIR="."
+          fi
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
+          echo "App code directory resolved to: $APP_DIR"
+
       # ── NODE.JS ────────────────────────────────────────────────────────────
       - name: Determine Node.js version
         id: node_ver
@@ -181,6 +195,7 @@ jobs:
       - name: Install Node.js dependencies
         if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           # npm requires a file named exactly 'package.json'.
           # If the user uploaded 'package.js' instead, rename it automatically.
           if [ ! -f package.json ] && [ -f package.js ]; then
@@ -192,6 +207,7 @@ jobs:
       - name: Run Node.js Unit Tests
         if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs') && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           npm test -- --passWithNoTests 2>/dev/null             || npm test             || echo "::warning::No test script found or tests failed. Review package.json scripts."
 
       # ── PYTHON ─────────────────────────────────────────────────────────────
@@ -204,6 +220,7 @@ jobs:
       - name: Install Python dependencies
         if: steps.detect_runtime.outputs.runtime == 'python'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
@@ -212,6 +229,7 @@ jobs:
       - name: Run Python Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'python' && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           python -m pytest --tb=short -q 2>/dev/null             || python -m unittest discover -s . -p "test_*.py" 2>/dev/null             || echo "::warning::No test files found. Add pytest or unittest tests to enable this check."
 
       # ── .NET ───────────────────────────────────────────────────────────────
@@ -223,11 +241,14 @@ jobs:
 
       - name: Restore .NET dependencies
         if: steps.detect_runtime.outputs.runtime == 'dotnet'
-        run: dotnet restore
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          dotnet restore
 
       - name: Run .NET Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'dotnet' && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           dotnet test --no-restore --verbosity normal             || echo "::warning::No test projects found or tests failed."
 
       # ── JAVA (MAVEN) ───────────────────────────────────────────────────────
@@ -241,11 +262,13 @@ jobs:
       - name: Run Maven Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'java-maven' && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           mvn test -B --no-transfer-progress             || echo "::warning::Maven tests failed or no tests found."
 
       - name: Run Gradle Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'java-gradle' && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           chmod +x gradlew 2>/dev/null || true
           ./gradlew test --no-daemon 2>/dev/null             || gradle test --no-daemon 2>/dev/null             || echo "::warning::Gradle tests failed or no tests found."
 
@@ -253,6 +276,7 @@ jobs:
       - name: Run Ruby Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'ruby' && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           bundle install 2>/dev/null || true
           bundle exec rspec 2>/dev/null             || bundle exec rake test 2>/dev/null             || echo "::warning::No RSpec/Rake tests found."
 
@@ -260,6 +284,7 @@ jobs:
       - name: Run PHP Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'php' && github.event.inputs.run_unit_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           composer install --no-interaction --prefer-dist 2>/dev/null || true
           vendor/bin/phpunit 2>/dev/null             || echo "No PHPUnit tests found or composer not configured. Add a phpunit.xml and tests/ folder to enable this check."
 
@@ -285,6 +310,7 @@ jobs:
       - name: Run Integration Tests
         if: github.event.inputs.run_integration_test == 'true'
         run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
           if [ -f "integration-tests.sh" ]; then
             echo "Running integration-tests.sh..."
             bash integration-tests.sh
