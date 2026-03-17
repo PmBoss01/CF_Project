@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'php-app-vv1'
+param appName string = 'python-app-vv99'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-php-app-vv1'
+param appServicePlanName string = 'asp-python-app-vv99'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,9 +33,10 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'PHP|8.2'
+      linuxFxVersion: 'PYTHON|3.11'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+      { name: 'WEBSITES_STARTUP_COMMAND', value: 'bash /home/site/wwwroot/startup.sh' }
     ]
     }
   }
