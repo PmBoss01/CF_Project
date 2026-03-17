@@ -36,6 +36,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
       linuxFxVersion: 'PYTHON|3.11'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+      { name: 'WEBSITES_STARTUP_COMMAND', value: 'bash /home/site/wwwroot/startup.sh' }
     ]
     }
   }
