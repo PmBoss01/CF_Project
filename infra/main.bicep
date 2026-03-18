@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'python-mx-311'
+param appName string = 'node-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-python-mx-311'
+param appServicePlanName string = 'asp-node-vv1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,7 +33,8 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'PYTHON|3.11'
+      linuxFxVersion: 'NODE|18-lts'
+      appCommandLine: 'npm start'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
     ]
