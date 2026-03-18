@@ -1,2 +1,0 @@
-# requirements.txt
-# No external dependencies — uses built-in http.server
