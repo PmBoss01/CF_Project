@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'java-mx1'
+param appName string = 'ruby-mxx-991'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-java-mx1'
+param appServicePlanName string = 'asp-ruby-mxx-991'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,9 +33,11 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'JAVA|17-java17'
+      linuxFxVersion: 'RUBY|3.2'
+      appCommandLine: 'bundle exec rackup --host 0.0.0.0 --port 8080'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+      { name: 'WEBSITES_PORT', value: '8080' }
     ]
     }
   }
