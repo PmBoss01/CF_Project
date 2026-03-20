@@ -34,9 +34,10 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
     serverFarmId: appServicePlan.id
     siteConfig: {
       linuxFxVersion: 'RUBY|3.2'
-      appCommandLine: 'bundle install --without development test && bundle exec rackup --host 0.0.0.0 --port 8080'
+      appCommandLine: 'bundle exec rackup --host 0.0.0.0 --port 8080'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+      { name: 'WEBSITES_PORT', value: '8080' }
     ]
     }
   }
