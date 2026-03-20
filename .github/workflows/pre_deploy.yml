@@ -245,11 +245,23 @@ jobs:
           cd "${{ steps.find_app_dir.outputs.app_dir }}"
           dotnet restore
 
+      - name: Build .NET application
+        if: steps.detect_runtime.outputs.runtime == 'dotnet'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          dotnet build --no-restore -c Release
+
       - name: Run .NET Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'dotnet' && github.event.inputs.run_unit_test == 'true'
         run: |
           cd "${{ steps.find_app_dir.outputs.app_dir }}"
-          dotnet test --no-restore --verbosity normal             || echo "::warning::No test projects found or tests failed."
+          dotnet test --no-restore --no-build --verbosity normal             || echo "::warning::No test projects found or tests failed."
+
+      - name: Publish .NET application
+        if: steps.detect_runtime.outputs.runtime == 'dotnet'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          dotnet publish --no-build -c Release -o ./publish
 
       # ── JAVA (MAVEN) ───────────────────────────────────────────────────────
       - name: Set up Java 17
