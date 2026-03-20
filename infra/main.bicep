@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'java-vv1'
+param appName string = 'net-test-vv78'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-java-vv1'
+param appServicePlanName string = 'asp-net-test-vv78'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'JAVA|17-java17'
+      linuxFxVersion: 'DOTNETCORE|8.0'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
     ]
