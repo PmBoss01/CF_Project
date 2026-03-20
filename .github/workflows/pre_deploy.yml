@@ -140,7 +140,7 @@ jobs:
           elif find . -maxdepth 6 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
             echo "runtime=python" >> $GITHUB_OUTPUT
             echo "Detected runtime: Python"
-          elif find . -maxdepth 6 \( -name "*.csproj" -o -name "*.sln" \) | grep -q .; then
+          elif find . -maxdepth 6 \( -name "*.csproj" -o -name "*.sln" -o -name "*.slnx" \) | grep -q .; then
             echo "runtime=dotnet" >> $GITHUB_OUTPUT
             echo "Detected runtime: .NET"
           elif find . -maxdepth 6 -name "pom.xml" | grep -q .; then
@@ -168,7 +168,7 @@ jobs:
           # For .NET, prefer the .sln file — it is the solution root that
           # covers all projects.  Check for it first so dotnet restore/build
           # runs from the solution directory, not a nested project directory.
-          SLN=$(find . -maxdepth 8 -name "*.sln" ! -path "*/.git/*" | head -1)
+          SLN=$(find . -maxdepth 8 \( -name "*.sln" -o -name "*.slnx" \) ! -path "*/.git/*" | head -1)
           if [ -n "$SLN" ]; then
             PKG="$SLN"
           else
@@ -181,6 +181,14 @@ jobs:
           fi
           echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
           echo "App code directory resolved to: $APP_DIR"
+          # Capture the explicit .sln/.slnx/.csproj path so dotnet steps can pass it
+          # directly rather than relying on the working directory.
+          DOTNET_PROJ="$SLN"
+          if [ -z "$DOTNET_PROJ" ]; then
+            DOTNET_PROJ=$(find . -maxdepth 8 -name "*.csproj" ! -path "*/.git/*" | head -1)
+          fi
+          echo "dotnet_proj=${DOTNET_PROJ}" >> $GITHUB_OUTPUT
+          echo "Dotnet project/solution resolved to: ${DOTNET_PROJ:-(none)}"
 
       # ── NODE.JS ────────────────────────────────────────────────────────────
       - name: Determine Node.js version
@@ -250,26 +258,33 @@ jobs:
       - name: Restore .NET dependencies
         if: steps.detect_runtime.outputs.runtime == 'dotnet'
         run: |
-          cd "${{ steps.find_app_dir.outputs.app_dir }}"
-          dotnet restore
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          if [ -n "$PROJ" ]; then
+            echo "Restoring: $PROJ"
+            dotnet restore "$PROJ"
+          else
+            echo "::error::No .sln or .csproj found. Cannot restore .NET dependencies."
+            exit 1
+          fi
 
       - name: Build .NET application
         if: steps.detect_runtime.outputs.runtime == 'dotnet'
         run: |
-          cd "${{ steps.find_app_dir.outputs.app_dir }}"
-          dotnet build --no-restore -c Release
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          dotnet build --no-restore -c Release ${PROJ:+"$PROJ"}
 
       - name: Run .NET Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'dotnet' && github.event.inputs.run_unit_test == 'true'
         run: |
-          cd "${{ steps.find_app_dir.outputs.app_dir }}"
-          dotnet test --no-restore --no-build --verbosity normal             || echo "::warning::No test projects found or tests failed."
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          dotnet test --no-restore --no-build --verbosity normal ${PROJ:+"$PROJ"}             || echo "::warning::No test projects found or tests failed."
 
       - name: Publish .NET application
         if: steps.detect_runtime.outputs.runtime == 'dotnet'
         run: |
-          cd "${{ steps.find_app_dir.outputs.app_dir }}"
-          dotnet publish --no-build -c Release -o ./publish
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          OUTDIR=$(dirname "${PROJ:-.}")/publish
+          dotnet publish --no-build -c Release -o "$OUTDIR" ${PROJ:+"$PROJ"}
 
       # ── JAVA (MAVEN) ───────────────────────────────────────────────────────
       - name: Set up Java 17
