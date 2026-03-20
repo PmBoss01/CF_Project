@@ -165,7 +165,15 @@ jobs:
         run: |
           # Uploaded zips land under deployment/app_code/... not at the repo root.
           # Locate the nearest dependency manifest to determine the app's working directory.
-          PKG=$(find . -maxdepth 8             \( -name "package.json" -o -name "package.js"                -o -name "requirements.txt" -o -name "pyproject.toml"                -o -name "composer.json" -o -name "Gemfile"                -o -name "pom.xml" -o -name "build.gradle"                -o -name "*.csproj" \)             ! -path "*/node_modules/*" ! -path "*/.git/*"             | head -1)
+          # For .NET, prefer the .sln file — it is the solution root that
+          # covers all projects.  Check for it first so dotnet restore/build
+          # runs from the solution directory, not a nested project directory.
+          SLN=$(find . -maxdepth 8 -name "*.sln" ! -path "*/.git/*" | head -1)
+          if [ -n "$SLN" ]; then
+            PKG="$SLN"
+          else
+            PKG=$(find . -maxdepth 8               \( -name "package.json" -o -name "package.js"                  -o -name "requirements.txt" -o -name "pyproject.toml"                  -o -name "composer.json" -o -name "Gemfile"                  -o -name "pom.xml" -o -name "build.gradle"                  -o -name "*.csproj" \)               ! -path "*/node_modules/*" ! -path "*/.git/*"               | head -1)
+          fi
           if [ -n "$PKG" ]; then
             APP_DIR=$(dirname "$PKG")
           else
