@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'app-dotnet-v1'
+param appName string = 'dotnet9-app-v2'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-app-dotnet-v1'
+param appServicePlanName string = 'asp-dotnet9-app-v2'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOTNETCORE|8.0'
+      linuxFxVersion: 'DOTNETCORE|9.0'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
       { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200,301,302' }
