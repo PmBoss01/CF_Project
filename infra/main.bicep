@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'ruby-test-mx2'
+param appName string = 'app-dotnet-v1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-ruby-test-mx2'
+param appServicePlanName string = 'asp-app-dotnet-v1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,11 +33,9 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'RUBY|3.2'
-      appCommandLine: 'bundle exec rackup --host 0.0.0.0 --port 8080'
+      linuxFxVersion: 'DOTNETCORE|8.0'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
-      { name: 'WEBSITES_PORT', value: '8080' }
     ]
     }
   }
