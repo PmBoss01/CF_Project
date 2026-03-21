@@ -323,6 +323,13 @@ jobs:
           composer install --no-interaction --prefer-dist 2>/dev/null || true
           vendor/bin/phpunit 2>/dev/null             || echo "No PHPUnit tests found or composer not configured. Add a phpunit.xml and tests/ folder to enable this check."
 
+      # ── STATIC HTML ────────────────────────────────────────────────────────
+      - name: Static HTML — No Build Steps Required
+        if: steps.detect_runtime.outputs.runtime == 'static'
+        run: |
+          echo "Static HTML/CSS/JS project — no build, install, or unit test steps required."
+          echo "The Trivy security scan (if enabled) will still inspect your files."
+
       # ── UNKNOWN RUNTIME ────────────────────────────────────────────────────
       - name: Unit Tests — Runtime Not Detected
         if: steps.detect_runtime.outputs.runtime == 'unknown' && github.event.inputs.run_unit_test == 'true'
