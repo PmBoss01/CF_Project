@@ -1,0 +1,7 @@
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\dotnet10-test.exe
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\appsettings.Development.json
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\appsettings.json
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\dotnet10-test.dll
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\dotnet10-test.deps.json
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\dotnet10-test.runtimeconfig.json
+C:\Users\Mpemb\OneDrive\Desktop\dotnet10-test\publish\dotnet10-test.pdb
