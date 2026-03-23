@@ -2,16 +2,16 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'staticweb-v1'
+param appName string = 'python-312-app-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-staticweb-v1'
+param appServicePlanName string = 'asp-python-312-app-vv1'
 
 @description('The SKU name for the App Service Plan.')
-param skuName string = 'B1'
+param skuName string = 'S1'
 
 @description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Basic'
+param skuTier string = 'Standard'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: appServicePlanName
@@ -33,10 +33,9 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'NODE|20-lts'
-      appCommandLine: 'echo ok > /home/site/wwwroot/robots933456.txt; test -f /home/npm-global/bin/serve || npm install -g serve --prefix /home/npm-global --quiet; /home/npm-global/bin/serve -s . -l tcp://0.0.0.0:8080'
+      linuxFxVersion: 'PYTHON|3.12'
       appSettings: [
-      { name: 'WEBSITES_PORT', value: '8080' }
+      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
     ]
     }
   }
