@@ -168,11 +168,15 @@ jobs:
           # For .NET, prefer the .sln file — it is the solution root that
           # covers all projects.  Check for it first so dotnet restore/build
           # runs from the solution directory, not a nested project directory.
-          SLN=$(find . -maxdepth 8 \( -name "*.sln" -o -name "*.slnx" \) ! -path "*/.git/*" | head -1)
+          # Sort results with -r (reverse-alphabetical) so the highest timestamp
+          # under deployment/app_code/{YYYYMMDDHHMMSS}/... always wins.
+          # Without sort, accumulated stale folders from previous deployments
+          # (different runtime) can shadow the current one via head -1.
+          SLN=$(find . -maxdepth 8 \( -name "*.sln" -o -name "*.slnx" \) ! -path "*/.git/*" | sort -r | head -1)
           if [ -n "$SLN" ]; then
             PKG="$SLN"
           else
-            PKG=$(find . -maxdepth 8               \( -name "package.json" -o -name "package.js"                  -o -name "requirements.txt" -o -name "pyproject.toml"                  -o -name "composer.json" -o -name "Gemfile"                  -o -name "pom.xml" -o -name "build.gradle"                  -o -name "*.csproj" \)               ! -path "*/node_modules/*" ! -path "*/.git/*"               | head -1)
+            PKG=$(find . -maxdepth 8               \( -name "package.json" -o -name "package.js"                  -o -name "requirements.txt" -o -name "pyproject.toml"                  -o -name "composer.json" -o -name "Gemfile"                  -o -name "pom.xml" -o -name "build.gradle"                  -o -name "*.csproj" \)               ! -path "*/node_modules/*" ! -path "*/.git/*"               | sort -r | head -1)
           fi
           if [ -n "$PKG" ]; then
             APP_DIR=$(dirname "$PKG")
@@ -185,7 +189,7 @@ jobs:
           # directly rather than relying on the working directory.
           DOTNET_PROJ="$SLN"
           if [ -z "$DOTNET_PROJ" ]; then
-            DOTNET_PROJ=$(find . -maxdepth 8 -name "*.csproj" ! -path "*/.git/*" | head -1)
+            DOTNET_PROJ=$(find . -maxdepth 8 -name "*.csproj" ! -path "*/.git/*" | sort -r | head -1)
           fi
           echo "dotnet_proj=${DOTNET_PROJ}" >> $GITHUB_OUTPUT
           echo "Dotnet project/solution resolved to: ${DOTNET_PROJ:-(none)}"
