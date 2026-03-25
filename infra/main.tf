@@ -12,7 +12,7 @@ provider "azurerm" {
 }
 
 data "azurerm_resource_group" "rg" {
-  name = "dopRG"
+  name = "pot-rg"
 }
 
 variable "app_service_plan_id" {
@@ -21,7 +21,7 @@ variable "app_service_plan_id" {
 }
 
 resource "azurerm_app_service" "app" {
-  name                = "staticWeb-vv1"
+  name                = "staticWeb-prod-vv17877"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
   app_service_plan_id = var.app_service_plan_id
