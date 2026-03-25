@@ -39,6 +39,11 @@ on:
         required: false
         type: string
         default: ''
+      custom_params:
+        description: 'Custom parameters as a JSON object (e.g. {"MY_VAR":"value"}). Each key is exported as an environment variable.'
+        required: false
+        type: string
+        default: '{}'
 
 jobs:
   iac-checks:
@@ -48,6 +53,14 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Export Custom Parameters
+        if: github.event.inputs.custom_params != '' && github.event.inputs.custom_params != '{}'
+        run: |
+          echo "Exporting custom parameters as environment variables..."
+          PARAMS='${{ github.event.inputs.custom_params }}'
+          echo "$PARAMS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
+          echo "Custom parameters exported."
 
       - name: Detect IaC Type
         id: detect_iac
@@ -124,6 +137,14 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Export Custom Parameters
+        if: github.event.inputs.custom_params != '' && github.event.inputs.custom_params != '{}'
+        run: |
+          echo "Exporting custom parameters as environment variables..."
+          PARAMS='${{ github.event.inputs.custom_params }}'
+          echo "$PARAMS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
+          echo "Custom parameters exported."
 
       - name: Auto-detect Application Runtime
         id: detect_runtime
