@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'dotnet8-app'
+param appName string = 'staticweb-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-dotnet8-app'
+param appServicePlanName string = 'asp-staticweb-vv1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,11 +33,10 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOTNETCORE|8.0'
+      linuxFxVersion: 'NODE|20-lts'
+      appCommandLine: 'echo ok > /home/site/wwwroot/robots933456.txt; test -f /home/npm-global/bin/serve || npm install -g serve --prefix /home/npm-global --quiet; /home/npm-global/bin/serve -s . -l tcp://0.0.0.0:8080'
       appSettings: [
-      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
-      { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200,301,302' }
-      { name: 'ASPNETCORE_URLS', value: 'http://*:8080' }
+      { name: 'WEBSITES_PORT', value: '8080' }
     ]
     }
   }
