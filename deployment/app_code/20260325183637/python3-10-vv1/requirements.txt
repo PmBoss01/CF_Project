@@ -1,0 +1,2 @@
+# No requirements.txt needed
+# Uses Python standard library only
