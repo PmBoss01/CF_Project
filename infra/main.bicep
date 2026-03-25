@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'dotnet10-vv1'
+param appName string = 'java-17-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-dotnet10-vv1'
+param appServicePlanName string = 'asp-java-17-vv1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,12 +33,9 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOTNETCORE|10.0'
-      appSettings: [
-      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
-      { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200,301,302' }
-      { name: 'ASPNETCORE_URLS', value: 'http://*:8080' }
-    ]
+      linuxFxVersion: 'JAVA|17-java17'
+      appCommandLine: 'java -jar /home/site/wwwroot/app.jar'
+      appSettings: []
     }
   }
 }
