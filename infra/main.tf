@@ -21,7 +21,7 @@ variable "app_service_plan_id" {
 }
 
 resource "azurerm_app_service" "app" {
-  name                = "php-tf-test-vv1"
+  name                = "python-tf-test-vv1"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
   app_service_plan_id = var.app_service_plan_id
@@ -31,7 +31,7 @@ resource "azurerm_app_service" "app" {
 }
 
   site_config {
-    linux_fx_version = "PHP|8.3"
+    linux_fx_version = "PYTHON|3.12"
   }
 }
 
