@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'php8-vv1'
+param appName string = 'dotnet8-test'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-php8-vv1'
+param appServicePlanName string = 'asp-dotnet8-test'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,9 +33,11 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'PHP|8.3'
+      linuxFxVersion: 'DOTNETCORE|8.0'
       appSettings: [
       { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+      { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200,301,302' }
+      { name: 'ASPNETCORE_URLS', value: 'http://*:8080' }
     ]
     }
   }
