@@ -30,8 +30,8 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
         osType: 'Linux'
         type: 'VirtualMachineScaleSets'
         upgradeSettings: {
-          maxSurge: '0'
-          maxUnavailable: '1'
+          maxSurge: '1'
+          maxUnavailable: '0'
         }
       }
     ]
