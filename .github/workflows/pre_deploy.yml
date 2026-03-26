@@ -146,46 +146,6 @@ jobs:
           echo "$PARAMS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
           echo "Custom parameters exported."
 
-      - name: Auto-detect Application Runtime
-        id: detect_runtime
-        run: |
-          # Use the explicit app_runtime hint when provided — most reliable signal.
-          # Falls back to file-based detection (maxdepth 6 to cover deployment/app_code/... paths).
-          EXPLICIT="${{ github.event.inputs.app_runtime }}"
-          if [ -n "$EXPLICIT" ]; then
-            # Strip trailing version digits so java-maven21 → java-maven for condition checks.
-            RUNTIME=$(echo "$EXPLICIT" | sed 's/[0-9]*$//')
-            echo "runtime=${RUNTIME}" >> $GITHUB_OUTPUT
-            # Emit the java_version from the suffix (e.g. java-maven21 → 21); default 17.
-            JAVA_VER=$(echo "$EXPLICIT" | grep -oE '[0-9]+$' || true)
-            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
-            echo "Using explicit runtime hint: ${EXPLICIT} (runtime=${RUNTIME}, java_version=${JAVA_VER:-17})"
-          elif find . -maxdepth 6 -name "package.json" ! -path "*/node_modules/*" | grep -q .; then
-            echo "runtime=nodejs" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Node.js"
-          elif find . -maxdepth 6 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
-            echo "runtime=python" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Python"
-          elif find . -maxdepth 6 \( -name "*.csproj" -o -name "*.sln" -o -name "*.slnx" \) | grep -q .; then
-            echo "runtime=dotnet" >> $GITHUB_OUTPUT
-            echo "Detected runtime: .NET"
-          elif find . -maxdepth 6 -name "pom.xml" | grep -q .; then
-            echo "runtime=java-maven" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Java (Maven)"
-          elif find . -maxdepth 6 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
-            echo "runtime=java-gradle" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Java (Gradle)"
-          elif find . -maxdepth 6 -name "Gemfile" | grep -q .; then
-            echo "runtime=ruby" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Ruby"
-          elif find . -maxdepth 6 -name "composer.json" | grep -q .; then
-            echo "runtime=php" >> $GITHUB_OUTPUT
-            echo "Detected runtime: PHP"
-          else
-            echo "runtime=unknown" >> $GITHUB_OUTPUT
-            echo "Could not auto-detect runtime. Language-specific steps will be skipped."
-          fi
-
       - name: Find app code directory
         id: find_app_dir
         run: |
@@ -219,6 +179,50 @@ jobs:
           fi
           echo "dotnet_proj=${DOTNET_PROJ}" >> $GITHUB_OUTPUT
           echo "Dotnet project/solution resolved to: ${DOTNET_PROJ:-(none)}"
+
+      - name: Auto-detect Application Runtime
+        id: detect_runtime
+        run: |
+          # Use the explicit app_runtime hint when provided — most reliable signal.
+          # Falls back to file-based detection scoped to APP_DIR (the newest deployment
+          # directory). Searching from repo root (.) would find manifest files from
+          # previous deployments (e.g. an old package.json alongside the current pom.xml)
+          # and incorrectly detect the stale runtime.
+          APP_DIR="${{ steps.find_app_dir.outputs.app_dir }}"
+          EXPLICIT="${{ github.event.inputs.app_runtime }}"
+          if [ -n "$EXPLICIT" ]; then
+            # Strip trailing version digits so java-maven21 → java-maven for condition checks.
+            RUNTIME=$(echo "$EXPLICIT" | sed 's/[0-9]*$//')
+            echo "runtime=${RUNTIME}" >> $GITHUB_OUTPUT
+            # Emit the java_version from the suffix (e.g. java-maven21 → 21); default 17.
+            JAVA_VER=$(echo "$EXPLICIT" | grep -oE '[0-9]+$' || true)
+            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
+            echo "Using explicit runtime hint: ${EXPLICIT} (runtime=${RUNTIME}, java_version=${JAVA_VER:-17})"
+          elif find "$APP_DIR" -maxdepth 3 -name "package.json" ! -path "*/node_modules/*" | grep -q .; then
+            echo "runtime=nodejs" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Node.js"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
+            echo "runtime=python" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Python"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "*.csproj" -o -name "*.sln" -o -name "*.slnx" \) | grep -q .; then
+            echo "runtime=dotnet" >> $GITHUB_OUTPUT
+            echo "Detected runtime: .NET"
+          elif find "$APP_DIR" -maxdepth 3 -name "pom.xml" | grep -q .; then
+            echo "runtime=java-maven" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Java (Maven)"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
+            echo "runtime=java-gradle" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Java (Gradle)"
+          elif find "$APP_DIR" -maxdepth 3 -name "Gemfile" | grep -q .; then
+            echo "runtime=ruby" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Ruby"
+          elif find "$APP_DIR" -maxdepth 3 -name "composer.json" | grep -q .; then
+            echo "runtime=php" >> $GITHUB_OUTPUT
+            echo "Detected runtime: PHP"
+          else
+            echo "runtime=unknown" >> $GITHUB_OUTPUT
+            echo "Could not auto-detect runtime. Language-specific steps will be skipped."
+          fi
 
       # ── NODE.JS ────────────────────────────────────────────────────────────
       - name: Determine Node.js version
