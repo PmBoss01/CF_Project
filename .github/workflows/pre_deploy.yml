@@ -209,10 +209,19 @@ jobs:
             echo "Detected runtime: .NET"
           elif find "$APP_DIR" -maxdepth 3 -name "pom.xml" | grep -q .; then
             echo "runtime=java-maven" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Java (Maven)"
+            # Extract Java version from pom.xml so the right JDK is installed.
+            # Checks <java.version>, <maven.compiler.release>, and <maven.compiler.source>.
+            POM_FILE=$(find "$APP_DIR" -maxdepth 3 -name "pom.xml" | sort -r | head -1)
+            JAVA_VER=$(grep -m1 -oE '<(java\.version|maven\.compiler\.release|maven\.compiler\.source)>[0-9]+' "$POM_FILE" 2>/dev/null               | grep -oE '[0-9]+$' | head -1)
+            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Java (Maven), java_version=${JAVA_VER:-17}"
           elif find "$APP_DIR" -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
             echo "runtime=java-gradle" >> $GITHUB_OUTPUT
-            echo "Detected runtime: Java (Gradle)"
+            # Extract Java version from build.gradle (sourceCompatibility / toolchain).
+            GRADLE_FILE=$(find "$APP_DIR" -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | sort -r | head -1)
+            JAVA_VER=$(grep -m1 -oE 'sourceCompatibility\s*=\s*[0-9]+|JavaVersion\.VERSION_[0-9]+|languageVersion\s*=\s*JavaLanguageVersion\.of\([0-9]+\)' "$GRADLE_FILE" 2>/dev/null               | grep -oE '[0-9]+' | head -1)
+            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Java (Gradle), java_version=${JAVA_VER:-17}"
           elif find "$APP_DIR" -maxdepth 3 -name "Gemfile" | grep -q .; then
             echo "runtime=ruby" >> $GITHUB_OUTPUT
             echo "Detected runtime: Ruby"
