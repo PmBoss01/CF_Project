@@ -236,7 +236,7 @@ jobs:
           elif find "$APP_DIR" -maxdepth 3 -name "Gemfile" | grep -q .; then
             echo "runtime=ruby" >> $GITHUB_OUTPUT
             echo "Detected runtime: Ruby"
-          elif find "$APP_DIR" -maxdepth 3 -name "composer.json" | grep -q .; then
+          elif find "$APP_DIR" -maxdepth 3 \( -name "composer.json" -o -name "*.php" \) | grep -q .; then
             echo "runtime=php" >> $GITHUB_OUTPUT
             echo "Detected runtime: PHP"
           else
@@ -370,6 +370,12 @@ jobs:
           bundle exec rspec 2>/dev/null             || bundle exec rake test 2>/dev/null             || echo "::warning::No RSpec/Rake tests found."
 
       # ── PHP ────────────────────────────────────────────────────────────────
+      - name: Set up PHP
+        if: steps.detect_runtime.outputs.runtime == 'php'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
       - name: Run PHP Unit Tests
         if: steps.detect_runtime.outputs.runtime == 'php' && github.event.inputs.run_unit_test == 'true'
         run: |
@@ -389,7 +395,7 @@ jobs:
         if: steps.detect_runtime.outputs.runtime == 'unknown' && github.event.inputs.run_unit_test == 'true'
         run: |
           echo "::warning::Runtime could not be detected. Unit tests were not run."
-          echo "Ensure your project has one of: package.json, requirements.txt, *.csproj, pom.xml, build.gradle, Gemfile, or composer.json."
+          echo "Ensure your project has one of: package.json, requirements.txt, *.csproj, pom.xml, build.gradle, Gemfile, composer.json, or *.php."
 
       # ── SECURITY SCAN (Trivy — language-agnostic) ──────────────────────────
       - name: Security Scan (Trivy filesystem)
