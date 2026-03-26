@@ -149,35 +149,46 @@ jobs:
       - name: Find app code directory
         id: find_app_dir
         run: |
-          # Uploaded zips land under deployment/app_code/... not at the repo root.
-          # Locate the nearest dependency manifest to determine the app's working directory.
-          # For .NET, prefer the .sln file — it is the solution root that
-          # covers all projects.  Check for it first so dotnet restore/build
-          # runs from the solution directory, not a nested project directory.
-          # Sort results with -r (reverse-alphabetical) so the highest timestamp
-          # under deployment/app_code/{YYYYMMDDHHMMSS}/... always wins.
-          # Without sort, accumulated stale folders from previous deployments
-          # (different runtime) can shadow the current one via head -1.
-          SLN=$(find . -maxdepth 8 \( -name "*.sln" -o -name "*.slnx" \) ! -path "*/.git/*" | sort -r | head -1)
-          if [ -n "$SLN" ]; then
-            PKG="$SLN"
-          else
-            PKG=$(find . -maxdepth 8               \( -name "package.json" -o -name "package.js"                  -o -name "requirements.txt" -o -name "pyproject.toml"                  -o -name "composer.json" -o -name "Gemfile"                  -o -name "pom.xml" -o -name "build.gradle"                  -o -name "*.csproj" \)               ! -path "*/node_modules/*" ! -path "*/.git/*"               | sort -r | head -1)
+          # App code is committed under deployment/app_code/{YYYYMMDDHHMMSS}/{app_name}/.
+          # Directly target that structure: sort the timestamp directories (depth-3) so
+          # the newest deployment always wins regardless of how many stale folders from
+          # previous deployments have accumulated.  This is more reliable than sorting
+          # all manifest-file paths across the whole repo, which can break when files
+          # from older deployments sort alphabetically higher than the current one.
+          APP_CODE_BASE=""
+          TS_DIR=$(find . -mindepth 3 -maxdepth 3 -type d             -path "*/deployment/app_code/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+          if [ -n "$TS_DIR" ]; then
+            # Descend one level into the {app_name} subdirectory if it exists
+            INNER=$(find "$TS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | LC_ALL=C sort -r | head -1)
+            APP_CODE_BASE="${INNER:-$TS_DIR}"
           fi
-          if [ -n "$PKG" ]; then
-            APP_DIR=$(dirname "$PKG")
+
+          if [ -n "$APP_CODE_BASE" ]; then
+            # .NET: prefer .sln/.slnx (solution root covers all projects)
+            SLN=$(find "$APP_CODE_BASE" -maxdepth 6 \( -name "*.sln" -o -name "*.slnx" \)               ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            if [ -n "$SLN" ]; then
+              APP_DIR=$(dirname "$SLN")
+              DOTNET_PROJ="$SLN"
+            else
+              APP_DIR="$APP_CODE_BASE"
+              DOTNET_PROJ=$(find "$APP_CODE_BASE" -maxdepth 6 -name "*.csproj"                 ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            fi
           else
-            APP_DIR="."
+            # Fallback: no deployment/app_code/ structure found; search from repo root.
+            SLN=$(find . -maxdepth 8 \( -name "*.sln" -o -name "*.slnx" \)               ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            if [ -n "$SLN" ]; then
+              APP_DIR=$(dirname "$SLN")
+              DOTNET_PROJ="$SLN"
+            else
+              PKG=$(find . -maxdepth 8                 \( -name "package.json" -o -name "package.js"                    -o -name "requirements.txt" -o -name "pyproject.toml"                    -o -name "composer.json" -o -name "Gemfile"                    -o -name "pom.xml" -o -name "build.gradle"                    -o -name "*.csproj" \)                 ! -path "*/node_modules/*" ! -path "*/.git/*" 2>/dev/null                 | LC_ALL=C sort -r | head -1)
+              APP_DIR="${PKG:+$(dirname "$PKG")}"
+              APP_DIR="${APP_DIR:-.}"
+              DOTNET_PROJ=$(find . -maxdepth 8 -name "*.csproj"                 ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            fi
           fi
           echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
-          echo "App code directory resolved to: $APP_DIR"
-          # Capture the explicit .sln/.slnx/.csproj path so dotnet steps can pass it
-          # directly rather than relying on the working directory.
-          DOTNET_PROJ="$SLN"
-          if [ -z "$DOTNET_PROJ" ]; then
-            DOTNET_PROJ=$(find . -maxdepth 8 -name "*.csproj" ! -path "*/.git/*" | sort -r | head -1)
-          fi
           echo "dotnet_proj=${DOTNET_PROJ}" >> $GITHUB_OUTPUT
+          echo "App code directory resolved to: $APP_DIR"
           echo "Dotnet project/solution resolved to: ${DOTNET_PROJ:-(none)}"
 
       - name: Auto-detect Application Runtime
