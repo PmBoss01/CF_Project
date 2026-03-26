@@ -2,7 +2,7 @@
 param location string = 'centralus'
 
 @description('The name of the AKS cluster.')
-param clusterName string = 'aks-dotnet-vv2'
+param clusterName string = 'aks-java-vv1'
 
 @description('The number of nodes in the AKS cluster.')
 param nodeCount int = 2
