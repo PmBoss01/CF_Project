@@ -35,7 +35,7 @@ on:
         type: string
         default: ''
       app_runtime:
-        description: 'Application runtime hint (nodejs/python/dotnet/java-maven/java-gradle/ruby/php; leave empty for auto-detect)'
+        description: 'Application runtime hint (nodejs/python/dotnet/java-maven/java-gradle/ruby/php/static; leave empty for auto-detect)'
         required: false
         type: string
         default: ''
@@ -239,6 +239,9 @@ jobs:
           elif find "$APP_DIR" -maxdepth 3 \( -name "composer.json" -o -name "*.php" \) | grep -q .; then
             echo "runtime=php" >> $GITHUB_OUTPUT
             echo "Detected runtime: PHP"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "index.html" -o -name "index.htm" -o -name "*.html" \) | grep -q .; then
+            echo "runtime=static" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Static HTML"
           else
             echo "runtime=unknown" >> $GITHUB_OUTPUT
             echo "Could not auto-detect runtime. Language-specific steps will be skipped."
@@ -395,7 +398,7 @@ jobs:
         if: steps.detect_runtime.outputs.runtime == 'unknown' && github.event.inputs.run_unit_test == 'true'
         run: |
           echo "::warning::Runtime could not be detected. Unit tests were not run."
-          echo "Ensure your project has one of: package.json, requirements.txt, *.csproj, pom.xml, build.gradle, Gemfile, composer.json, or *.php."
+          echo "Ensure your project has one of: package.json, requirements.txt, *.csproj, pom.xml, build.gradle, Gemfile, composer.json, *.php, or *.html."
 
       # ── SECURITY SCAN (Trivy — language-agnostic) ──────────────────────────
       - name: Security Scan (Trivy filesystem)
