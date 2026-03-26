@@ -2,7 +2,7 @@
 param location string = 'centralus'
 
 @description('The name of the AKS cluster.')
-param clusterName string = 'php-vvv1'
+param clusterName string = 'php-vvv1-mx1'
 
 @description('The number of nodes in the AKS cluster.')
 param nodeCount int = 2
