@@ -18,10 +18,10 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "statichtml-vv1"
+  name                = "test-stop-app"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "statichtml-vv1"
+  dns_prefix          = "test-stop-app"
 
   default_node_pool {
     name       = "agentpool"
