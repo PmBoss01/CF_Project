@@ -27,11 +27,12 @@ resource "azurerm_app_service" "app" {
   app_service_plan_id = var.app_service_plan_id
 
   app_settings = {
-    "SCM_DO_BUILD_DURING_DEPLOYMENT": "true"
+    "WEBSITES_PORT": "8080"
 }
 
   site_config {
-    linux_fx_version = "PHP|8.3"
+    linux_fx_version = "NODE|20-lts"
+    app_command_line = "echo ok > /home/site/wwwroot/robots933456.txt; test -f /home/npm-global/bin/serve || npm install -g serve --prefix /home/npm-global --quiet; /home/npm-global/bin/serve -s . -l tcp://0.0.0.0:8080"
   }
 }
 
