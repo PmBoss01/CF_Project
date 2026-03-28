@@ -27,13 +27,11 @@ resource "azurerm_app_service" "app" {
   app_service_plan_id = var.app_service_plan_id
 
   app_settings = {
-    "SCM_DO_BUILD_DURING_DEPLOYMENT": "true",
-    "WEBSITE_SWAP_WARMUP_PING_STATUSES": "200,301,302",
-    "ASPNETCORE_URLS": "http://*:8080"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT": "true"
 }
 
   site_config {
-    linux_fx_version = "DOTNETCORE|10.0"
+    linux_fx_version = "PHP|8.3"
   }
 }
 
