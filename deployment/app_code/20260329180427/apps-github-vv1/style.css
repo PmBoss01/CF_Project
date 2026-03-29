@@ -1,0 +1,20 @@
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b}
+.container{max-width:700px;margin:40px auto;padding:0 24px}
+.header{margin-bottom:32px}
+h1{font-size:1.75rem;font-weight:700;margin-bottom:10px}
+h3{font-size:1rem;font-weight:600;color:#475569;margin-bottom:12px}
+section{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin-bottom:20px}
+ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+li{font-size:.9rem}
+.badges{display:flex;gap:8px}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:500}
+.teal{background:#ccfbf1;color:#134e4a}.slate{background:#e2e8f0;color:#334155}
+.row{display:flex;gap:8px}
+.row input{flex:1;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.9rem;outline:none}
+.row input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.row button,.counter button{padding:8px 18px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9rem}
+.row button:hover,.counter button:hover{background:#4f46e5}
+.out{margin-top:10px;font-size:.9rem;color:#4f46e5;min-height:22px}
+.counter{display:flex;align-items:center;gap:20px}
+#count{font-size:2rem;font-weight:700;min-width:48px;text-align:center}
