@@ -2,40 +2,55 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 2.0"
+      version = "~> 3.0"
     }
   }
 }
 
 provider "azurerm" {
   features {}
+  skip_provider_registration = false
 }
 
-data "azurerm_resource_group" "rg" {
-  name = "dopRG"
+resource "azurerm_resource_group" "rg" {
+  name     = "dopRG"
+  location = "centralus"
 }
 
-variable "app_service_plan_id" {
-  description = "The ID of the App Service Plan to use."
-  type        = string
-}
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = "aks-github-vv1"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  dns_prefix          = "aks-github-vv1"
 
-resource "azurerm_app_service" "app" {
-  name                = "apps-github-vv1"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
-  app_service_plan_id = var.app_service_plan_id
+  default_node_pool {
+    name       = "agentpool"
+    node_count = 2
+    vm_size    = "Standard_DS2_v2"
+    upgrade_settings {
+      max_surge       = "1"
+      max_unavailable = "0"
+    }
+  }
 
-  app_settings = {
-    "WEBSITES_PORT": "8080"
-}
+  identity {
+    type = "SystemAssigned"
+  }
 
-  site_config {
-    linux_fx_version = "NODE|20-lts"
-    app_command_line = "echo ok > /home/site/wwwroot/robots933456.txt; test -f /home/npm-global/bin/serve || npm install -g serve --prefix /home/npm-global --quiet; /home/npm-global/bin/serve -s . -l tcp://0.0.0.0:8080"
+  tags = {
+    environment = "dev"
   }
 }
 
-output "app_service_hostname" {
-  value = azurerm_app_service.app.default_site_hostname
+output "kube_config" {
+  value     = azurerm_kubernetes_cluster.aks.kube_config_raw
+  sensitive = true
+}
+
+output "cluster_name" {
+  value = azurerm_kubernetes_cluster.aks.name
+}
+
+output "cluster_fqdn" {
+  value = azurerm_kubernetes_cluster.aks.fqdn
 }
