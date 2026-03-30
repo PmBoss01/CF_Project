@@ -18,10 +18,10 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "aks-github-vv1"
+  name                = "acr-test-vv1"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "aks-github-vv1"
+  dns_prefix          = "acr-test-vv1"
 
   default_node_pool {
     name       = "agentpool"
