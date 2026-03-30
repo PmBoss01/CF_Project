@@ -2,55 +2,37 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 2.0"
     }
   }
 }
 
 provider "azurerm" {
   features {}
-  skip_provider_registration = false
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = "dopRG"
-  location = "centralus"
+data "azurerm_resource_group" "rg" {
+  name = "dopRG"
 }
 
-resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "aks-acr-vv2"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "aks-acr-vv2"
+variable "app_service_plan_id" {
+  description = "The ID of the App Service Plan to use."
+  type        = string
+}
 
-  default_node_pool {
-    name       = "agentpool"
-    node_count = 2
-    vm_size    = "Standard_DS2_v2"
-    upgrade_settings {
-      max_surge       = "1"
-      max_unavailable = "0"
-    }
-  }
+resource "azurerm_app_service" "app" {
+  name                = "appS-acr-vv2"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  app_service_plan_id = var.app_service_plan_id
 
-  identity {
-    type = "SystemAssigned"
-  }
+  app_settings = {}
 
-  tags = {
-    environment = "dev"
+  site_config {
+    linux_fx_version = "DOCKER|doptestcontainer.azurecr.io/pythonimage:latest"
   }
 }
 
-output "kube_config" {
-  value     = azurerm_kubernetes_cluster.aks.kube_config_raw
-  sensitive = true
-}
-
-output "cluster_name" {
-  value = azurerm_kubernetes_cluster.aks.name
-}
-
-output "cluster_fqdn" {
-  value = azurerm_kubernetes_cluster.aks.fqdn
+output "app_service_hostname" {
+  value = azurerm_app_service.app.default_site_hostname
 }
