@@ -5,7 +5,7 @@ param location string = 'centralus'
 param clusterName string = 'aks-acr-vvv1'
 
 @description('The number of nodes in the AKS cluster.')
-param nodeCount int = 3
+param nodeCount int = 2
 
 @description('The VM size for the AKS nodes.')
 param vmSize string = 'Standard_DS2_v2'
