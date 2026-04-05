@@ -1,48 +1,46 @@
 @description('The Azure region for the deployment.')
 param location string = 'centralus'
 
-@description('The name of the application.')
-param appName string = 'test-stop-app-vv1'
+@description('The name of the AKS cluster.')
+param clusterName string = 'aks-acr-mx1'
 
-@description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-test-stop-app-vv1'
+@description('The number of nodes in the AKS cluster.')
+param nodeCount int = 2
 
-@description('The SKU name for the App Service Plan.')
-param skuName string = 'S1'
+@description('The VM size for the AKS nodes.')
+param vmSize string = 'Standard_DS2_v2'
 
-@description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Standard'
-
-resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
-  name: appServicePlanName
+resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
+  name: clusterName
   location: location
-  sku: {
-    name: skuName
-    tier: skuTier
+  identity: {
+    type: 'SystemAssigned'
   }
-  kind: 'linux'
-  properties: {
-    reserved: true
+  tags: {
+    environment: 'dev'
   }
-}
-
-resource appService 'Microsoft.Web/sites@2022-03-01' = {
-  name: appName
-  location: location
-  kind: 'app,linux'
   properties: {
-    serverFarmId: appServicePlan.id
-    siteConfig: {
-      linuxFxVersion: 'DOTNETCORE|10.0'
-      appCommandLine: ''
-      appSettings: [
-      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
-      { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200,301,302' }
-      { name: 'ASPNETCORE_URLS', value: 'http://*:8080' }
+    dnsPrefix: clusterName
+    agentPoolProfiles: [
+      {
+        name: 'agentpool1'
+        count: nodeCount
+        vmSize: vmSize
+        mode: 'System'
+        osType: 'Linux'
+        type: 'VirtualMachineScaleSets'
+        upgradeSettings: {
+          maxSurge: '1'
+          maxUnavailable: '0'
+        }
+      }
     ]
+    servicePrincipalProfile: {
+      clientId: 'msi'
     }
   }
 }
 
-output appServicePlanId string = appServicePlan.id
-output appServiceHostName string = appService.properties.defaultHostName
+output clusterName string = aksCluster.name
+output clusterFqdn string = aksCluster.properties.fqdn
+output clusterResourceId string = aksCluster.id
