@@ -33,9 +33,10 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'JAVA|21-java21'
-      appCommandLine: 'java -jar /home/site/wwwroot/app.jar'
-      appSettings: []
+      linuxFxVersion: 'PYTHON|3.12'
+      appSettings: [
+      { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+    ]
     }
   }
 }
