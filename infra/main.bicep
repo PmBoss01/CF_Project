@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'test-app-vv1'
+param appName string = 'test-app-vv2'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-test-app-vv1'
+param appServicePlanName string = 'asp-test-app-vv2'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|doptestregistry.azurecr.io/dotnetimg:latest'
+      linuxFxVersion: 'DOCKER|doptestCR.azurecr.io/dotimg:latest'
       appSettings: []
     }
   }
