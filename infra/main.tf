@@ -18,13 +18,13 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "aks-acr-vvv1"
+  name                = "test-app-vv1"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "aks-acr-vvv1"
+  dns_prefix          = "test-app-vv1"
 
   default_node_pool {
-    name       = "agentpool"
+    name       = "agentpool1"
     node_count = 2
     vm_size    = "Standard_DS2_v2"
     upgrade_settings {
