@@ -17,7 +17,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
     type: 'SystemAssigned'
   }
   tags: {
-    environment: 'prod'
+    environment: 'dev'
   }
   properties: {
     dnsPrefix: clusterName
