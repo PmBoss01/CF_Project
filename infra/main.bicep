@@ -1,46 +1,44 @@
 @description('The Azure region for the deployment.')
-param location string = 'centralus'
+param location string = 'eastus'
 
-@description('The name of the AKS cluster.')
-param clusterName string = 'test-app-vv1'
+@description('The name of the application.')
+param appName string = 'app-vv1'
 
-@description('The number of nodes in the AKS cluster.')
-param nodeCount int = 2
+@description('The name of the App Service Plan.')
+param appServicePlanName string = 'asp-app-vv1'
 
-@description('The VM size for the AKS nodes.')
-param vmSize string = 'Standard_DS2_v2'
+@description('The SKU name for the App Service Plan.')
+param skuName string = 'B1'
 
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
-  name: clusterName
+@description('The SKU tier for the App Service Plan.')
+param skuTier string = 'Basic'
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+  name: appServicePlanName
   location: location
-  identity: {
-    type: 'SystemAssigned'
+  sku: {
+    name: skuName
+    tier: skuTier
   }
-  tags: {
-    environment: 'dev'
-  }
+  kind: 'linux'
   properties: {
-    dnsPrefix: clusterName
-    agentPoolProfiles: [
-      {
-        name: 'agentpool'
-        count: nodeCount
-        vmSize: vmSize
-        mode: 'System'
-        osType: 'Linux'
-        type: 'VirtualMachineScaleSets'
-        upgradeSettings: {
-          maxSurge: '1'
-          maxUnavailable: '0'
-        }
-      }
-    ]
-    servicePrincipalProfile: {
-      clientId: 'msi'
+    reserved: true
+  }
+}
+
+resource appService 'Microsoft.Web/sites@2022-03-01' = {
+  name: appName
+  location: location
+  kind: 'app,linux,container'
+  properties: {
+    serverFarmId: appServicePlan.id
+    siteConfig: {
+      linuxFxVersion: 'DOCKER|appvv1deveastusacr.azurecr.io/appvv1:latest'
+      appCommandLine: 'echo ok > /home/site/wwwroot/robots933456.txt; test -f /home/npm-global/bin/serve || npm install -g serve --prefix /home/npm-global --quiet; /home/npm-global/bin/serve -s . -l tcp://0.0.0.0:8080'
+      appSettings: []
     }
   }
 }
 
-output clusterName string = aksCluster.name
-output clusterFqdn string = aksCluster.properties.fqdn
-output clusterResourceId string = aksCluster.id
+output appServicePlanId string = appServicePlan.id
+output appServiceHostName string = appService.properties.defaultHostName
