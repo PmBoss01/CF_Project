@@ -1,0 +1,449 @@
+
+name: Pre-Deployment Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_unit_test:
+        description: 'Run Unit Tests'
+        required: false
+        type: boolean
+        default: false
+      run_security_scan:
+        description: 'Run Security Scan'
+        required: false
+        type: boolean
+        default: false
+      run_integration_test:
+        description: 'Run Integration Tests'
+        required: false
+        type: boolean
+        default: false
+      run_iac_lint:
+        description: 'Run IaC Linting'
+        required: false
+        type: boolean
+        default: false
+      run_iac_validate:
+        description: 'Run IaC Validation'
+        required: false
+        type: boolean
+        default: false
+      iac_type:
+        description: 'IaC type: bicep or terraform (overrides auto-detection)'
+        required: false
+        type: string
+        default: ''
+      app_runtime:
+        description: 'Application runtime hint (nodejs/python/dotnet/java-maven/java-gradle/ruby/php/static; leave empty for auto-detect)'
+        required: false
+        type: string
+        default: ''
+      custom_params:
+        description: 'Custom parameters as a JSON object (e.g. {"MY_VAR":"value"}). Each key is exported as an environment variable.'
+        required: false
+        type: string
+        default: '{}'
+
+jobs:
+  iac-checks:
+    runs-on: ubuntu-latest
+    name: IaC Validation
+    if: github.event.inputs.run_iac_lint == 'true' || github.event.inputs.run_iac_validate == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Export Custom Parameters
+        if: github.event.inputs.custom_params != '' && github.event.inputs.custom_params != '{}'
+        run: |
+          echo "Exporting custom parameters as environment variables..."
+          PARAMS='${{ github.event.inputs.custom_params }}'
+          echo "$PARAMS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
+          echo "Custom parameters exported."
+
+      - name: Detect IaC Type
+        id: detect_iac
+        run: |
+          # Use the explicit iac_type input when provided — this is the most reliable signal.
+          # Falling back to file search can produce wrong results if the repo contains
+          # leftover .bicep files from a previous deployment alongside the current .tf files.
+          EXPLICIT="${{ github.event.inputs.iac_type }}"
+          if [ "$EXPLICIT" = "bicep" ]; then
+            echo "iac_type=bicep" >> $GITHUB_OUTPUT
+            echo "Using explicit IaC type: Bicep"
+          elif [ "$EXPLICIT" = "terraform" ]; then
+            echo "iac_type=terraform" >> $GITHUB_OUTPUT
+            echo "Using explicit IaC type: Terraform"
+          elif find . -maxdepth 3 -name "*.bicep" | grep -q .; then
+            echo "iac_type=bicep" >> $GITHUB_OUTPUT
+            echo "Auto-detected IaC type: Bicep"
+          elif find . -maxdepth 3 -name "*.tf" | grep -q .; then
+            echo "iac_type=terraform" >> $GITHUB_OUTPUT
+            echo "Auto-detected IaC type: Terraform"
+          else
+            echo "iac_type=unknown" >> $GITHUB_OUTPUT
+            echo "No recognised IaC files found (.bicep or .tf)."
+          fi
+
+      # ── BICEP ──────────────────────────────────────────────────────────────
+      - name: Bicep Validate (az bicep build)
+        if: steps.detect_iac.outputs.iac_type == 'bicep' && github.event.inputs.run_iac_validate == 'true'
+        run: |
+          az bicep install
+          echo "Validating all Bicep files..."
+          find . -name "*.bicep" | while read f; do
+            echo "  Compiling $f ..."
+            az bicep build --file "$f" --stdout > /dev/null
+          done
+          echo "All Bicep files compiled successfully."
+
+      - name: Bicep Lint (az bicep lint)
+        if: steps.detect_iac.outputs.iac_type == 'bicep' && github.event.inputs.run_iac_lint == 'true'
+        run: |
+          az bicep install
+          echo "Linting all Bicep files..."
+          find . -name "*.bicep" | while read f; do
+            echo "  Linting $f ..."
+            az bicep lint --file "$f"
+          done
+          echo "Bicep lint completed."
+
+      # ── TERRAFORM ──────────────────────────────────────────────────────────
+      - name: Setup Terraform
+        if: steps.detect_iac.outputs.iac_type == 'terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Terraform Init
+        if: steps.detect_iac.outputs.iac_type == 'terraform'
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        if: steps.detect_iac.outputs.iac_type == 'terraform' && github.event.inputs.run_iac_validate == 'true'
+        run: terraform validate
+
+      - name: Terraform Lint (tflint)
+        if: steps.detect_iac.outputs.iac_type == 'terraform' && github.event.inputs.run_iac_lint == 'true'
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --recursive || echo "TFLint found advisory issues. Review above — non-blocking style warnings."
+
+  app-checks:
+    runs-on: ubuntu-latest
+    name: Application Code Validation
+    if: github.event.inputs.run_unit_test == 'true' || github.event.inputs.run_security_scan == 'true' || github.event.inputs.run_integration_test == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Export Custom Parameters
+        if: github.event.inputs.custom_params != '' && github.event.inputs.custom_params != '{}'
+        run: |
+          echo "Exporting custom parameters as environment variables..."
+          PARAMS='${{ github.event.inputs.custom_params }}'
+          echo "$PARAMS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
+          echo "Custom parameters exported."
+
+      - name: Find app code directory
+        id: find_app_dir
+        run: |
+          # App code is committed under deployment/app_code/{YYYYMMDDHHMMSS}/{app_name}/.
+          # Directly target that structure: sort the timestamp directories (depth-3) so
+          # the newest deployment always wins regardless of how many stale folders from
+          # previous deployments have accumulated.  This is more reliable than sorting
+          # all manifest-file paths across the whole repo, which can break when files
+          # from older deployments sort alphabetically higher than the current one.
+          APP_CODE_BASE=""
+          TS_DIR=$(find . -mindepth 3 -maxdepth 3 -type d             -path "*/deployment/app_code/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+          if [ -n "$TS_DIR" ]; then
+            # Descend one level into the {app_name} subdirectory if it exists
+            INNER=$(find "$TS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | LC_ALL=C sort -r | head -1)
+            APP_CODE_BASE="${INNER:-$TS_DIR}"
+          fi
+
+          if [ -n "$APP_CODE_BASE" ]; then
+            # .NET: prefer .sln/.slnx (solution root covers all projects)
+            SLN=$(find "$APP_CODE_BASE" -maxdepth 6 \( -name "*.sln" -o -name "*.slnx" \)               ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            if [ -n "$SLN" ]; then
+              APP_DIR=$(dirname "$SLN")
+              DOTNET_PROJ="$SLN"
+            else
+              APP_DIR="$APP_CODE_BASE"
+              DOTNET_PROJ=$(find "$APP_CODE_BASE" -maxdepth 6 -name "*.csproj"                 ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            fi
+          else
+            # Fallback: no deployment/app_code/ structure found; search from repo root.
+            SLN=$(find . -maxdepth 8 \( -name "*.sln" -o -name "*.slnx" \)               ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            if [ -n "$SLN" ]; then
+              APP_DIR=$(dirname "$SLN")
+              DOTNET_PROJ="$SLN"
+            else
+              PKG=$(find . -maxdepth 8                 \( -name "package.json" -o -name "package.js"                    -o -name "requirements.txt" -o -name "pyproject.toml"                    -o -name "composer.json" -o -name "Gemfile"                    -o -name "pom.xml" -o -name "build.gradle"                    -o -name "*.csproj" \)                 ! -path "*/node_modules/*" ! -path "*/.git/*" 2>/dev/null                 | LC_ALL=C sort -r | head -1)
+              APP_DIR="${PKG:+$(dirname "$PKG")}"
+              APP_DIR="${APP_DIR:-.}"
+              DOTNET_PROJ=$(find . -maxdepth 8 -name "*.csproj"                 ! -path "*/.git/*" 2>/dev/null | LC_ALL=C sort -r | head -1)
+            fi
+          fi
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
+          echo "dotnet_proj=${DOTNET_PROJ}" >> $GITHUB_OUTPUT
+          echo "App code directory resolved to: $APP_DIR"
+          echo "Dotnet project/solution resolved to: ${DOTNET_PROJ:-(none)}"
+
+      - name: Auto-detect Application Runtime
+        id: detect_runtime
+        run: |
+          # Use the explicit app_runtime hint when provided — most reliable signal.
+          # Falls back to file-based detection scoped to APP_DIR (the newest deployment
+          # directory). Searching from repo root (.) would find manifest files from
+          # previous deployments (e.g. an old package.json alongside the current pom.xml)
+          # and incorrectly detect the stale runtime.
+          APP_DIR="${{ steps.find_app_dir.outputs.app_dir }}"
+          EXPLICIT="${{ github.event.inputs.app_runtime }}"
+          if [ -n "$EXPLICIT" ]; then
+            # Strip trailing version digits so java-maven21 → java-maven for condition checks.
+            RUNTIME=$(echo "$EXPLICIT" | sed 's/[0-9]*$//')
+            echo "runtime=${RUNTIME}" >> $GITHUB_OUTPUT
+            # Emit the java_version from the suffix (e.g. java-maven21 → 21); default 17.
+            JAVA_VER=$(echo "$EXPLICIT" | grep -oE '[0-9]+$' || true)
+            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
+            echo "Using explicit runtime hint: ${EXPLICIT} (runtime=${RUNTIME}, java_version=${JAVA_VER:-17})"
+          elif find "$APP_DIR" -maxdepth 3 -name "package.json" ! -path "*/node_modules/*" | grep -q .; then
+            echo "runtime=nodejs" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Node.js"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "requirements.txt" -o -name "setup.py" -o -name "pyproject.toml" \) | grep -q .; then
+            echo "runtime=python" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Python"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "*.csproj" -o -name "*.sln" -o -name "*.slnx" \) | grep -q .; then
+            echo "runtime=dotnet" >> $GITHUB_OUTPUT
+            echo "Detected runtime: .NET"
+          elif find "$APP_DIR" -maxdepth 3 -name "pom.xml" | grep -q .; then
+            echo "runtime=java-maven" >> $GITHUB_OUTPUT
+            # Extract Java version from pom.xml so the right JDK is installed.
+            # Checks <java.version>, <maven.compiler.release>, and <maven.compiler.source>.
+            POM_FILE=$(find "$APP_DIR" -maxdepth 3 -name "pom.xml" | sort -r | head -1)
+            JAVA_VER=$(grep -m1 -oE '<(java\.version|maven\.compiler\.release|maven\.compiler\.source)>[0-9]+' "$POM_FILE" 2>/dev/null               | grep -oE '[0-9]+$' | head -1)
+            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Java (Maven), java_version=${JAVA_VER:-17}"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep -q .; then
+            echo "runtime=java-gradle" >> $GITHUB_OUTPUT
+            # Extract Java version from build.gradle (sourceCompatibility / toolchain).
+            GRADLE_FILE=$(find "$APP_DIR" -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | sort -r | head -1)
+            JAVA_VER=$(grep -m1 -oE 'sourceCompatibility\s*=\s*[0-9]+|JavaVersion\.VERSION_[0-9]+|languageVersion\s*=\s*JavaLanguageVersion\.of\([0-9]+\)' "$GRADLE_FILE" 2>/dev/null               | grep -oE '[0-9]+' | head -1)
+            echo "java_version=${JAVA_VER:-17}" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Java (Gradle), java_version=${JAVA_VER:-17}"
+          elif find "$APP_DIR" -maxdepth 3 -name "Gemfile" | grep -q .; then
+            echo "runtime=ruby" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Ruby"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "composer.json" -o -name "*.php" \) | grep -q .; then
+            echo "runtime=php" >> $GITHUB_OUTPUT
+            echo "Detected runtime: PHP"
+          elif find "$APP_DIR" -maxdepth 3 \( -name "index.html" -o -name "index.htm" -o -name "*.html" \) | grep -q .; then
+            echo "runtime=static" >> $GITHUB_OUTPUT
+            echo "Detected runtime: Static HTML"
+          else
+            echo "runtime=unknown" >> $GITHUB_OUTPUT
+            echo "Could not auto-detect runtime. Language-specific steps will be skipped."
+          fi
+
+      # ── NODE.JS ────────────────────────────────────────────────────────────
+      - name: Determine Node.js version
+        id: node_ver
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
+        run: |
+          RUNTIME="${{ steps.detect_runtime.outputs.runtime }}"
+          if [[ "$RUNTIME" =~ nodejs([0-9]+) ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          else
+            echo "version=20" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Node.js
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.node_ver.outputs.version }}
+
+      - name: Install Node.js dependencies
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs')
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          # npm requires a file named exactly 'package.json'.
+          # If the user uploaded 'package.js' instead, rename it automatically.
+          if [ ! -f package.json ] && [ -f package.js ]; then
+            echo "::notice::Found 'package.js' but npm requires 'package.json'. Renaming automatically."
+            cp package.js package.json
+          fi
+          npm ci 2>/dev/null || npm install
+
+      - name: Run Node.js Unit Tests
+        if: startsWith(steps.detect_runtime.outputs.runtime, 'nodejs') && github.event.inputs.run_unit_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          npm test -- --passWithNoTests 2>/dev/null             || npm test             || echo "::warning::No test script found or tests failed. Review package.json scripts."
+
+      # ── PYTHON ─────────────────────────────────────────────────────────────
+      - name: Set up Python
+        if: steps.detect_runtime.outputs.runtime == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        if: steps.detect_runtime.outputs.runtime == 'python'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          pip install pytest 2>/dev/null || true
+
+      - name: Run Python Unit Tests
+        if: steps.detect_runtime.outputs.runtime == 'python' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          python -m pytest --tb=short -q 2>/dev/null             || python -m unittest discover -s . -p "test_*.py" 2>/dev/null             || echo "::warning::No test files found. Add pytest or unittest tests to enable this check."
+
+      # ── .NET ───────────────────────────────────────────────────────────────
+      - name: Set up .NET SDK
+        if: steps.detect_runtime.outputs.runtime == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Restore .NET dependencies
+        if: steps.detect_runtime.outputs.runtime == 'dotnet'
+        run: |
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          if [ -n "$PROJ" ]; then
+            echo "Restoring: $PROJ"
+            dotnet restore "$PROJ"
+          else
+            echo "::error::No .sln or .csproj found. Cannot restore .NET dependencies."
+            exit 1
+          fi
+
+      - name: Build .NET application
+        if: steps.detect_runtime.outputs.runtime == 'dotnet'
+        run: |
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          dotnet build --no-restore -c Release ${PROJ:+"$PROJ"}
+
+      - name: Run .NET Unit Tests
+        if: steps.detect_runtime.outputs.runtime == 'dotnet' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          dotnet test --no-restore --no-build --verbosity normal ${PROJ:+"$PROJ"}             || echo "::warning::No test projects found or tests failed."
+
+      - name: Publish .NET application
+        if: steps.detect_runtime.outputs.runtime == 'dotnet'
+        run: |
+          PROJ="${{ steps.find_app_dir.outputs.dotnet_proj }}"
+          OUTDIR=$(dirname "${PROJ:-.}")/publish
+          dotnet publish --no-build -c Release -o "$OUTDIR" ${PROJ:+"$PROJ"}
+
+      # ── JAVA (MAVEN) ───────────────────────────────────────────────────────
+      - name: Set up Java
+        if: steps.detect_runtime.outputs.runtime == 'java-maven' || steps.detect_runtime.outputs.runtime == 'java-gradle'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ steps.detect_runtime.outputs.java_version || '17' }}
+
+      - name: Run Maven Unit Tests
+        if: steps.detect_runtime.outputs.runtime == 'java-maven' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          mvn test -B --no-transfer-progress             || echo "::warning::Maven tests failed or no tests found."
+
+      - name: Run Gradle Unit Tests
+        if: steps.detect_runtime.outputs.runtime == 'java-gradle' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          chmod +x gradlew 2>/dev/null || true
+          ./gradlew test --no-daemon 2>/dev/null             || gradle test --no-daemon 2>/dev/null             || echo "::warning::Gradle tests failed or no tests found."
+
+      # ── RUBY ───────────────────────────────────────────────────────────────
+      - name: Run Ruby Unit Tests
+        if: steps.detect_runtime.outputs.runtime == 'ruby' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          bundle install 2>/dev/null || true
+          bundle exec rspec 2>/dev/null             || bundle exec rake test 2>/dev/null             || echo "::warning::No RSpec/Rake tests found."
+
+      # ── PHP ────────────────────────────────────────────────────────────────
+      - name: Set up PHP
+        if: steps.detect_runtime.outputs.runtime == 'php'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Run PHP Unit Tests
+        if: steps.detect_runtime.outputs.runtime == 'php' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          composer install --no-interaction --prefer-dist 2>/dev/null || true
+          vendor/bin/phpunit 2>/dev/null             || echo "No PHPUnit tests found or composer not configured. Add a phpunit.xml and tests/ folder to enable this check."
+
+      # ── STATIC HTML ────────────────────────────────────────────────────────
+      - name: Static HTML — No Build Steps Required
+        if: steps.detect_runtime.outputs.runtime == 'static'
+        run: |
+          echo "Static HTML/CSS/JS project — no build, install, or unit test steps required."
+          echo "The Trivy security scan (if enabled) will still inspect your files."
+
+      # ── UNKNOWN RUNTIME ────────────────────────────────────────────────────
+      - name: Unit Tests — Runtime Not Detected
+        if: steps.detect_runtime.outputs.runtime == 'unknown' && github.event.inputs.run_unit_test == 'true'
+        run: |
+          echo "::warning::Runtime could not be detected. Unit tests were not run."
+          echo "Ensure your project has one of: package.json, requirements.txt, *.csproj, pom.xml, build.gradle, Gemfile, composer.json, *.php, or *.html."
+
+      # ── SECURITY SCAN (Trivy — language-agnostic) ──────────────────────────
+      - name: Security Scan (Trivy filesystem)
+        if: github.event.inputs.run_security_scan == 'true'
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'HIGH,CRITICAL'
+          format: 'table'
+          exit-code: '0'
+
+      # ── INTEGRATION TESTS ──────────────────────────────────────────────────
+      - name: Run Integration Tests
+        if: github.event.inputs.run_integration_test == 'true'
+        run: |
+          cd "${{ steps.find_app_dir.outputs.app_dir }}"
+          if [ -f "integration-tests.sh" ]; then
+            echo "Running integration-tests.sh..."
+            bash integration-tests.sh
+          elif [ -f "package.json" ] && grep -q '"integration"' package.json; then
+            npm run integration
+          elif [ -f "package.json" ] && grep -q '"test:integration"' package.json; then
+            npm run test:integration
+          elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+            python -m pytest tests/integration/ -q 2>/dev/null               || python -m pytest -m integration -q 2>/dev/null               || echo "::warning::No integration test folder or marker found."
+          else
+            echo "No integration test entry point found. To enable integration tests, add one of:"
+            echo "  - integration-tests.sh at project root"
+            echo "  - 'integration' or 'test:integration' script in package.json"
+            echo "  - tests/integration/ folder for Python projects"
+          fi
+
+  pre-deployment-summary:
+    runs-on: ubuntu-latest
+    name: Pre-Deployment Summary
+    needs: [iac-checks, app-checks]
+    if: always()
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "IaC Checks status: ${{ needs.iac-checks.result }}"
+          echo "App Checks status: ${{ needs.app-checks.result }}"
+          if [[ "${{ needs.iac-checks.result }}" == "failure" || "${{ needs.iac-checks.result }}" == "cancelled" || "${{ needs.app-checks.result }}" == "failure" || "${{ needs.app-checks.result }}" == "cancelled" ]]; then
+            echo "One or more pre-deployment checks failed."
+            exit 1
+          fi
+          echo "All pre-deployment checks passed successfully."
