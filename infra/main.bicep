@@ -2,10 +2,10 @@
 param location string = 'centralus'
 
 @description('The name of the application.')
-param appName string = 'app-vv1'
+param appName string = 'myapp-vv1'
 
 @description('The name of the App Service Plan.')
-param appServicePlanName string = 'asp-app-vv1'
+param appServicePlanName string = 'asp-myapp-vv1'
 
 @description('The SKU name for the App Service Plan.')
 param skuName string = 'S1'
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|appvv1acr450.azurecr.io/appvv1:v1.0.0'
+      linuxFxVersion: 'DOCKER|myappvv1registry43.azurecr.io/myappvv1:v1.0.0'
       appSettings: []
     }
   }
