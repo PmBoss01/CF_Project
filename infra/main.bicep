@@ -8,10 +8,10 @@ param appName string = 'app-vv1'
 param appServicePlanName string = 'asp-app-vv1'
 
 @description('The SKU name for the App Service Plan.')
-param skuName string = 'B1'
+param skuName string = 'S1'
 
 @description('The SKU tier for the App Service Plan.')
-param skuTier string = 'Basic'
+param skuTier string = 'Standard'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: appServicePlanName
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|appvv1acr069.azurecr.io/appvv1:latest'
+      linuxFxVersion: 'DOCKER|appvv1registry098j8o.azurecr.io/appvv1:v1.0.0'
       appSettings: []
     }
   }
