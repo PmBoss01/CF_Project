@@ -1,5 +1,5 @@
 @description('The Azure region for the deployment.')
-param location string = 'centralus'
+param location string = 'eastus'
 
 @description('The name of the application.')
 param appName string = 'app-vv1'
@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|appvv1acr209.azurecr.io/appvv1:v1.0.0'
+      linuxFxVersion: 'DOCKER|appvv1registry22.azurecr.io/appvv1:v1.0.0'
       appSettings: []
     }
   }
