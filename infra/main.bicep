@@ -33,7 +33,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|myappvv1registry43.azurecr.io/myappvv1:v1.0.0'
+      linuxFxVersion: 'DOCKER|myappvv1registry06.azurecr.io/myappvv1:v1.0.0'
       appSettings: []
     }
   }
